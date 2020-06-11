@@ -1,0 +1,36 @@
+import logging
+import os
+import urllib
+from zipfile import ZipFile
+import datetime
+
+from django.db import models
+
+# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+
+class CreativeGroup(models.Model):
+    name = models.CharField(max_length=1000, default='Nameless Creative Group')
+
+    def __str__(self):
+        return self.name
+
+    def create_zip(self):
+
+        os.chdir('media/zips/')
+
+        name = f"{urllib.parse.quote_plus(self.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
+
+        with ZipFile(name, 'w',) as file:
+
+            i = 1
+
+            for creative in self.creative_set.all():
+
+                if f'{creative.name}.png' in file.namelist():
+                    file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
+                    i += 1
+
+                else:
+                    file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+
