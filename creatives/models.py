@@ -1,3 +1,5 @@
+# A creative is an ad tag
+
 import io
 import re
 import logging
@@ -28,6 +30,10 @@ class Creative(models.Model):
         return self.name
 
     def check_for_blocking(self):
+
+        # simple function that checks for blocking
+        # Returns true if blocking is present
+
         search = re.search(r'fw\.adsafeprotected|cdn\.doubleverify', self.markup)
         if search is None:
             return False
@@ -35,9 +41,15 @@ class Creative(models.Model):
             return True
 
     def remove_blocking(self):
+
+        # Removes blocking if present
+
         print(self.name)
 
     def take_screenshot(self):
+
+        # Uses the HCTI API to take a screenshot of the ad tag code provided
+
         hcti_api_endpoint = "https://hcti.io/v1/image"
         hcti_api_user_id = config('hcti_api_user_id')
         hcti_api_key = config('hcti_api_key')
@@ -50,6 +62,8 @@ class Creative(models.Model):
         self.save()
 
     def save_screenshot(self):
+
+        # Saves the screenshot taken by the HCTI API URL locally
 
         logging.debug(self.screenshot_url)  # The screenshot url from HCTI
 

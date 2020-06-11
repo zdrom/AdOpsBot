@@ -1,12 +1,14 @@
+# A Creative Group is a collection of creatives
+
 import logging
-import os
 import urllib
 from zipfile import ZipFile
 import datetime
 
+from django.conf import settings
 from django.db import models
 
-# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
 
 class CreativeGroup(models.Model):
@@ -17,11 +19,15 @@ class CreativeGroup(models.Model):
 
     def create_zip(self):
 
-        os.chdir('media/zips/')
+        # Take all of the creatives associated with the creative group
+        # Get the screenshot files
+        # save as a zip
 
-        name = f"{urllib.parse.quote_plus(self.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
+        zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(self.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
 
-        with ZipFile(name, 'w',) as file:
+        logging.warning(zip_path)
+
+        with ZipFile(zip_path, 'w',) as file:
 
             i = 1
 
@@ -34,3 +40,4 @@ class CreativeGroup(models.Model):
                 else:
                     file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
 
+        return zip_path
