@@ -23,7 +23,8 @@ class Creative(models.Model):
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
     markup_without_blocking = models.TextField(blank=True)
-    screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100, blank=True)
+    screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100,
+                                   blank=True)
     screenshot_url = models.URLField(blank=True)
     creative_group_id = models.ForeignKey(CreativeGroup,on_delete=models.CASCADE)
 
@@ -32,7 +33,14 @@ class Creative(models.Model):
 
     def determine_adserver(self):
 
-        search = re.search(r'ins|doubleclick|bs\.serving|servedby\.flashtalking|adsafeprotected\.com\/rjss', self.markup)
+        search = re.search(r'ins|doubleclick|bs\.serving|servedby\.flashtalking|adsafeprotected\.com\/rjss',
+                           self.markup)
+
+        if search is None:
+            self.adserver = 'unknown'
+            self.save()
+            logging.debug('The adserver could not be determined')
+            return
 
         logging.debug(f'The adserver found is {search.group()}')
 
@@ -52,6 +60,8 @@ class Creative(models.Model):
 
         logging.debug(f'The adserver is {self.adserver}')
 
+        return
+
     def has_blocking(self):
 
         # If blocking is not present
@@ -65,25 +75,25 @@ class Creative(models.Model):
 
         search = re.search(r'fw\.adsafeprotected|cdn\.doubleverify', self.markup)
 
-        if search is None:
-
-            self.blocking = False
-            self.save()
-
-            return False
-
-        else:
+        if search is not None:
 
             self.blocking = True
 
-            if search == 'fw.adsafeprotected':
+            if search.group() == 'fw.adsafeprotected':
                 self.blocking_vendor = 'ias'
-            elif search == 'cdn.doubleverify':
+            elif search.group() == 'cdn.doubleverify':
                 self.blocking_vendor = 'dv'
 
             self.save()
 
             return True
+
+        else:
+
+            self.blocking = False
+            self.save()
+
+            return False
 
     def use_correct_markup(self):
 
@@ -97,10 +107,31 @@ class Creative(models.Model):
             return self.markup
 
     def remove_blocking(self):
+        if self.blocking_vendor == 'dv':
+            if self.adserver == 'dcm ins':
+                search = re.search(
+                    r'((<script type="text\/adtag">\n)(.*<\/ins>)(.*))',
+                    self.markup, re.DOTALL)
 
-        # Removes blocking if present
+                tag_with_no_blocking = search.group(3)
 
-        print(self.name)
+                tag_with_no_blocking = tag_with_no_blocking.replace('</scr+ipt>', '</script>')
+
+        elif self.blocking_vendor == 'ias':
+            if self.adserver == 'dcm ins':
+
+                script_regex = re.compile(r'''
+                    (https://)  # Use
+                    (fw\.adsafeprotected\.com/rjss/)      # Remove
+                    (www\.googletagservices\.com)         # Use
+                    (/[0-9]*/[0-9]*)                      # Remove
+                    (/dcm/dcmads\.js)                     # Use
+                    ''', re.VERBOSE)
+
+                tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
+
+        self.markup_without_blocking = tag_with_no_blocking
+        self.save()
 
     def take_screenshot(self):
 
