@@ -33,7 +33,7 @@ class Creative(models.Model):
 
     def determine_adserver(self):
 
-        search = re.search(r'ins|doubleclick|bs\.serving|servedby\.flashtalking|adsafeprotected\.com\/rjss',
+        search = re.search(r'ins|doubleclick|bs\.serving|servedby\.flashtalking|adsafeprotected\.com/rjss/dc',
                            self.markup)
 
         if search is None:
@@ -47,7 +47,7 @@ class Creative(models.Model):
         if search.group() == 'ins':
             self.adserver = 'dcm ins'
 
-        elif search.group() == 'doubleclick' or search == 'adsafeprotected.com/rjss':
+        elif search.group() == 'doubleclick' or search.group() == 'adsafeprotected.com/rjss/dc':
             self.adserver = 'dcm legacy'
 
         elif search.group() == 'bs.serving':
@@ -117,6 +117,15 @@ class Creative(models.Model):
 
                 tag_with_no_blocking = tag_with_no_blocking.replace('</scr+ipt>', '</script>')
 
+            elif self.adserver == 'dcm legacy':
+                search = re.search(
+                    r'(<script type=\"text/adtag\">\n)(.*<\/scr\+ipt>)(.*)',
+                    self.markup, re.DOTALL)
+
+                tag_with_no_blocking = search.group(2)
+
+                tag_with_no_blocking = tag_with_no_blocking.replace('</scr+ipt>', '</script>')
+
         elif self.blocking_vendor == 'ias':
             if self.adserver == 'dcm ins':
 
@@ -126,6 +135,30 @@ class Creative(models.Model):
                     (www\.googletagservices\.com)         # Use
                     (/[0-9]*/[0-9]*)                      # Remove
                     (/dcm/dcmads\.js)                     # Use
+                    ''', re.VERBOSE)
+
+                tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
+
+            elif self.adserver == 'dcm legacy':
+                script_regex = re.compile(r'''
+                    (.*)                                  # Use
+                    (fw\.adsafeprotected\.com/)           # Replace
+                    (rjss/dc/[0-9]*/[0-9]*/)              # Remove
+                    (.*)                                  # Use
+                    ''', re.VERBOSE)
+
+                tag_with_no_blocking = re.sub(script_regex, r'\1ad.doubleclick.net/\4', self.markup)
+
+            elif self.adserver == 'sizmek':
+                script_regex = re.compile(r'''
+                    (.*https://)                          # Use
+                    (fw\.adsafeprotected\.com/rjss/)      # Remove
+                    (.*/)                                 # Use
+                    ([0-9]*/[0-9]*/)                      # Remove
+                    (.*</script>)                         # Use
+                    
+                    # Note: Only unblocks script portion
+                    
                     ''', re.VERBOSE)
 
                 tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
@@ -141,7 +174,7 @@ class Creative(models.Model):
         hcti_api_user_id = config('hcti_api_user_id')
         hcti_api_key = config('hcti_api_key')
 
-        data = {'html': self.markup}
+        data = {'html': self.use_correct_markup()}
 
         image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))
 
