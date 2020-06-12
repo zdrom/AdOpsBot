@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'creatives.apps.CreativesConfig',
     'creative_groups.apps.CreativeGroupsConfig',
     'rest_framework',
+    'events',
 ]
 
 MIDDLEWARE = [
