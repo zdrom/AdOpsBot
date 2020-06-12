@@ -1,11 +1,22 @@
+from decouple import config
 from django.http import HttpResponse, FileResponse
 from openpyxl import load_workbook
 from .models import Creative
 from creative_groups.models import CreativeGroup
 import logging
 
+from slack import WebClient
+from slack.errors import SlackApiError
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
+from rest_framework import viewsets
+from .serializers import CreativeSerializer
+
+logging.basicConfig(level=logging.DEBUG)
+
+
+class CreativeViewSet(viewsets.ModelViewSet):
+    queryset = Creative.objects.all().order_by('name')
+    serializer_class = CreativeSerializer
 
 
 def save_creatives(request):
@@ -21,10 +32,18 @@ def save_creatives(request):
 
         creative = Creative(name=columns[0], markup=columns[1], blocking=False, creative_group_id=cg)
         creative.save()
+
+        creative.determine_adserver()
+        creative.has_blocking()
+
+        if creative.blocking:
+            creative.remove_blocking()
+
         creative.take_screenshot()
         creative.save_screenshot()
 
     file_zip = cg.create_zip()
 
-    return FileResponse(open(file_zip, 'rb'), as_attachment=True)
+    # return HttpResponse('OK')
 
+    return FileResponse(open(file_zip, 'rb'), as_attachment=True)

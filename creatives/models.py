@@ -22,6 +22,7 @@ class Creative(models.Model):
     blocking = models.BooleanField()
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
+    markup_without_blocking = models.TextField(blank=True)
     screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100, blank=True)
     screenshot_url = models.URLField(blank=True)
     creative_group_id = models.ForeignKey(CreativeGroup,on_delete=models.CASCADE)
@@ -29,16 +30,71 @@ class Creative(models.Model):
     def __str__(self):
         return self.name
 
-    def check_for_blocking(self):
+    def determine_adserver(self):
 
-        # simple function that checks for blocking
-        # Returns true if blocking is present
+        search = re.search(r'ins|doubleclick|bs\.serving|servedby\.flashtalking|adsafeprotected\.com\/rjss', self.markup)
+
+        logging.debug(f'The adserver found is {search.group()}')
+
+        if search.group() == 'ins':
+            self.adserver = 'dcm ins'
+
+        elif search.group() == 'doubleclick' or search == 'adsafeprotected.com/rjss':
+            self.adserver = 'dcm legacy'
+
+        elif search.group() == 'bs.serving':
+            self.adserver = 'sizmek'
+
+        elif search.group() == 'servedby.flashtalking':
+            self.adserver = 'flashtalking'
+
+        self.save()
+
+        logging.debug(f'The adserver is {self.adserver}')
+
+    def has_blocking(self):
+
+        # If blocking is not present
+        # set .blocking to False
+        # return False
+
+        # If blocking is present
+        # set .blocking to true
+        # set .blocking_vendor to blocking vendor found
+        # return true
 
         search = re.search(r'fw\.adsafeprotected|cdn\.doubleverify', self.markup)
+
         if search is None:
+
+            self.blocking = False
+            self.save()
+
             return False
+
         else:
+
+            self.blocking = True
+
+            if search == 'fw.adsafeprotected':
+                self.blocking_vendor = 'ias'
+            elif search == 'cdn.doubleverify':
+                self.blocking_vendor = 'dv'
+
+            self.save()
+
             return True
+
+    def use_correct_markup(self):
+
+        # Uses the markup or markup_without_blocking depending on if has_blocking is true
+
+        if self.blocking:
+            logging.debug('Using markup_without_blocking')
+            return self.markup_without_blocking
+        else:
+            logging.debug('Using markup_without_blocking')
+            return self.markup
 
     def remove_blocking(self):
 
