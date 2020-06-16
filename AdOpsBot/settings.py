@@ -14,6 +14,7 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from decouple import config
+from django.conf import settings
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,7 +28,7 @@ SECRET_KEY = '0@ld4ve*2(0-%o(^=2*-2luq%-+26^9q43dz=luhate_5^o-nh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [config('ALLOWED_HOSTS')]
+ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), 'c344d0962581.ngrok.io']
 
 
 # Application definition
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
     'creative_groups.apps.CreativeGroupsConfig',
     'rest_framework',
     'events',
+    'huey.contrib.djhuey',
 ]
 
 MIDDLEWARE = [
@@ -131,10 +133,30 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    ]
+# REST_FRAMEWORK = {
+#     # Use Django's standard `django.contrib.auth` permissions,
+#     # or allow read-only access for unauthenticated users.
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+#     ]
+# }
+
+HUEY = {
+    'huey_class': 'huey.SqliteHuey',  # Huey implementation to use.
+    'name': settings.DATABASES['default']['NAME'],  # Use db name for huey.
+    'results': True,  # Store return values of tasks.
+    'store_none': False,  # If a task returns None, do not save to results.
+    'immediate': False,  # If DEBUG=True, run synchronously.
+    'utc': True,  # Use UTC for all times internally.
+    'consumer': {
+        'workers': 1,
+        'worker_type': 'thread',
+        'initial_delay': 0.1,  # Smallest polling interval, same as -d.
+        'backoff': 1.15,  # Exponential backoff using this rate, -b.
+        'max_delay': 10.0,  # Max possible polling interval, -m.
+        'scheduler_interval': 1,  # Check schedule every second, -s.
+        'periodic': True,  # Enable crontab feature.
+        'check_worker_health': True,  # Enable worker health checks.
+        'health_check_interval': 1,  # Check worker health every second.
+    },
 }

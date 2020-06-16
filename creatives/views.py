@@ -23,6 +23,8 @@ def save_creatives(request):
     wb = load_workbook(filename='/Users/zachromano/PycharmProjects/AdOpsBot/creatives/test.xlsx')
     ws = wb.active
 
+    logging.debug(f"name of the creative group is {ws['B1'].value}")
+
     cg = CreativeGroup(name=ws['B1'].value)
     cg.save()
 
@@ -33,14 +35,7 @@ def save_creatives(request):
         creative = Creative(name=columns[0], markup=columns[1], blocking=False, creative_group_id=cg)
         creative.save()
 
-        creative.determine_adserver()
-        creative.has_blocking()
-
-        if creative.blocking:
-            creative.remove_blocking()
-
-        creative.take_screenshot()
-        creative.save_screenshot()
+        creative.make_creative()
 
     file_zip = cg.create_zip()
 

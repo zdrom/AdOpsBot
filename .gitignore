@@ -147,3 +147,5 @@ dmypy.json
 # End of https://www.toptal.com/developers/gitignore/api/django
 /creatives/~$test.xlsx
 /.idea/dictionaries/zachromano.xml
+/huey.db
+/.DS_Store

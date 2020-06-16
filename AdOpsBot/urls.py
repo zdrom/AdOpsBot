@@ -22,6 +22,9 @@ from rest_framework import routers, serializers, viewsets
 
 
 # Serializers define the API representation.
+from events.views import Events
+
+
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
@@ -41,5 +44,6 @@ router.register(r'users', UserViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('creatives/', include('creatives.urls')),
+    url(r'^events/', Events.as_view()),
 
 ]

@@ -12,7 +12,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
 
 class CreativeGroup(models.Model):
-    name = models.CharField(max_length=1000, default='Nameless Creative Group')
+    name = models.CharField(max_length=1000, default='Creative Group')
 
     def __str__(self):
         return self.name

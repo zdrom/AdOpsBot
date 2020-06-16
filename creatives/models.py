@@ -19,7 +19,7 @@ from PIL import Image
 class Creative(models.Model):
     name = models.CharField(max_length=100)
     adserver = models.CharField(max_length=30, blank=True)
-    blocking = models.BooleanField()
+    blocking = models.NullBooleanField(null=True, blank=True)
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
     markup_without_blocking = models.TextField(blank=True)
@@ -170,7 +170,7 @@ class Creative(models.Model):
 
         # Uses the HCTI API to take a screenshot of the ad tag code provided
 
-        hcti_api_endpoint = "https://hcti.io/v1/image"
+        hcti_api_endpoint = "https://hcti.io/v1/image?ms_delay=3000"
         hcti_api_user_id = config('hcti_api_user_id')
         hcti_api_key = config('hcti_api_key')
 
