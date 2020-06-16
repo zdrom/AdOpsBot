@@ -149,3 +149,5 @@ dmypy.json
 /.idea/dictionaries/zachromano.xml
 /huey.db
 /.DS_Store
+/huey.db-wal
+/huey.db-shm
