@@ -36,7 +36,15 @@ def reply_with_instructions(channel):
                              'There is a column for *name* (name each creative something unique), '
                              'and a column for *ad tag*. Make sure when copying the ad tags into the '
                              'template that you don\'t accidentally add any other characters. '
-                             'Excel likes to reformat tags sometimes. Don\'t worry about whether or not the'
+                             'Excel likes to reformat tags sometimes.'
+                             )
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": ('Don\'t worry about whether or not the'
                              ' tags have blocking. I automatically remove blocking scripts before taking '
                              ' screenshots. I\'ll upload the results here when I\'m done. Shouldn\'t '
                              'take _too_ long\n'
@@ -116,6 +124,7 @@ def reply_with_screenshots(request_data):
 
     file_zip = cg.create_zip()
 
+    # File zip returns the path of the saved zip or False if there was an error
     if not file_zip:
         slack_client.chat_postMessage(channel=channel, text=f"I was not able to save the screenshots. "
                                                             f"Give it another try and if it still doesnt work, "
