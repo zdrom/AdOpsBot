@@ -5,6 +5,7 @@ import re
 import logging
 from urllib.parse import urlparse
 
+import PIL
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 import requests
@@ -13,7 +14,7 @@ from creative_groups.models import CreativeGroup
 import requests
 from decouple import config
 from io import BytesIO
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 
 class Creative(models.Model):
@@ -183,17 +184,25 @@ class Creative(models.Model):
 
     def save_screenshot(self):
 
+        # Add creative names that fail to this list and return the list once done
+
         # Saves the screenshot taken by the HCTI API URL locally
 
         logging.debug(self.screenshot_url)  # The screenshot url from HCTI
 
         r = requests.get(self.screenshot_url, auth=(config('hcti_api_user_id'), config('hcti_api_key')))
 
-        i = Image.open(BytesIO(r.content))
+        try:
+
+            i = Image.open(BytesIO(r.content))
+
+        except UnidentifiedImageError:
+
+            print(f'image error for {self.name}')
+
+            return self.name
 
         name = f"{urlparse(self.screenshot_url).path.split('/')[-1]}.png"
-
-        logging.debug(name)  # The name from the url from HCTI
 
         buffer = BytesIO()
 

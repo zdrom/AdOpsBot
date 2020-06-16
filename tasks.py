@@ -85,6 +85,9 @@ def reply_with_screenshots(request_data):
     cg = CreativeGroup(name=campaign_name)
     cg.save()
 
+    # a list of failed screenshots
+    errors = []
+
     for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
         creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg)
         creative.save()
@@ -98,9 +101,25 @@ def reply_with_screenshots(request_data):
             creative.remove_blocking()
 
         creative.take_screenshot()
-        creative.save_screenshot()
+
+        # save screenshots returns a creative name if it failed
+        error = creative.save_screenshot()
+
+        if error:
+            errors.append(error)
+
+    print(errors)
+
+    if errors:
+        slack_client.chat_postMessage(channel=channel, text=f"I had some issues "
+                                                            f"taking screenshots for {pprint.pprint(errors)}.")
 
     file_zip = cg.create_zip()
+
+    if not file_zip:
+        slack_client.chat_postMessage(channel=channel, text=f"I was not able to save the screenshots. "
+                                                            f"Give it another try and if it still doesnt work, "
+                                                            f"please let @zach know")
 
     slack_client.chat_postMessage(channel=channel, text='Here you go. Screenshots attached below')
     slack_client.files_upload(file=file_zip, channels=channel)

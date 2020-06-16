@@ -2,7 +2,7 @@
 
 import logging
 import urllib
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipFile
 import datetime
 
 from django.conf import settings
@@ -25,19 +25,30 @@ class CreativeGroup(models.Model):
 
         zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(self.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
 
-        logging.warning(zip_path)
+        try:
 
-        with ZipFile(zip_path, 'w',) as file:
+            with ZipFile(zip_path, 'w',) as file:
 
-            i = 1
+                i = 1
 
-            for creative in self.creative_set.all():
+                for creative in self.creative_set.all():
 
-                if f'{creative.name}.png' in file.namelist():
-                    file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
-                    i += 1
+                    # If there is an issue taking the screenshot
+                    # It won't save
+                    # Therefore it wont be available to add to the zip
+                    # skip if it's not there
 
-                else:
-                    file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+                    if creative.screenshot:
 
-        return zip_path
+                        if f'{creative.name}.png' in file.namelist():
+                            file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
+                            i += 1
+
+                        else:
+                            file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+
+            return zip_path
+
+        except BadZipFile:
+
+            return False
