@@ -6,6 +6,7 @@ import logging
 from urllib.parse import urlparse
 
 import PIL
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 import requests
@@ -182,14 +183,7 @@ class Creative(models.Model):
         self.screenshot_url = image.json()['url']
         self.save()
 
-    def save_screenshot(self):
-
-        # Add creative names that fail to this list and return the list once done
-
-        # Saves the screenshot taken by the HCTI API URL locally
-
-        logging.debug(self.screenshot_url)  # The screenshot url from HCTI
-
+    def save_image(self):
         r = requests.get(self.screenshot_url, auth=(config('hcti_api_user_id'), config('hcti_api_key')))
 
         try:
@@ -202,8 +196,6 @@ class Creative(models.Model):
 
             return self.name
 
-        name = f"{urlparse(self.screenshot_url).path.split('/')[-1]}.png"
-
         buffer = BytesIO()
 
         i.save(buffer, format='PNG')
@@ -211,7 +203,7 @@ class Creative(models.Model):
         im = InMemoryUploadedFile(
             buffer,
             None,
-            name,
+            f'{self.name}.png',
             'image/png',
             buffer.tell(),
             None)

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import storages
 from decouple import config
 from django.conf import settings
 
@@ -28,7 +29,7 @@ SECRET_KEY = '0@ld4ve*2(0-%o(^=2*-2luq%-+26^9q43dz=luhate_5^o-nh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), 'c344d0962581.ngrok.io']
+ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), 'acf30dc79dfd.ngrok.io']
 
 
 # Application definition
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'events',
     'huey.contrib.djhuey',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -128,9 +130,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 MEDIA_URL = '/media/'
-
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # REST_FRAMEWORK = {
@@ -160,3 +163,17 @@ HUEY = {
         'health_check_interval': 1,  # Check worker health every second.
     },
 }
+
+
+# AWS Storage Set Up
+
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

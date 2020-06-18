@@ -1,13 +1,24 @@
+import datetime
 import pprint
+import random
+import tempfile
+import urllib
+from io import StringIO, BytesIO
+from zipfile import ZipFile
 
 import requests
+import slack
 from decouple import config
+from django.core.files import File
 from huey.contrib.djhuey import task
 from openpyxl import load_workbook
 from slack import WebClient
 from slack.errors import SlackApiError
 from slackeventsapi import SlackEventAdapter
 from django.conf import settings
+from django.core.files.storage import default_storage
+
+from PIL import Image
 
 from creative_groups.models import CreativeGroup
 from creatives.models import Creative
@@ -59,7 +70,15 @@ def reply_with_instructions(channel):
 def reply_with_template(channel):
     slack_client = WebClient(config('SLACK_BOT_TOKEN'))
     slack_client.chat_postMessage(channel=channel, text='Here ya go!')
-    slack_client.files_upload(channels=channel, file=f'{settings.MEDIA_ROOT}/template.xlsx')
+
+    # If I want to change the template I need to uncomment here
+    # response = slack_client.files_remote_add(external_id='screenshot_template',
+    #                               external_url=default_storage.url('/template.xlsx'),
+    #                               title='Template')
+
+    # print(response)
+
+    slack_client.files_remote_share(channels=channel, file='F015JDNQWSH')
 
 
 @task()
@@ -78,10 +97,13 @@ def reply_with_screenshots(request_data):
     r = requests.get(file_url, headers={'Authorization': 'Bearer %s' % config('SLACK_BOT_TOKEN')})
     r.raise_for_status
 
-    with open(f'{settings.MEDIA_ROOT}/uploaded_template.xlsx', 'w+b') as f:
-        f.write(bytearray(r.content))
+    temp = tempfile.TemporaryFile(mode='w+b')
 
-    wb = load_workbook(filename=f'{settings.MEDIA_ROOT}/uploaded_template.xlsx')
+    temp.write(r.content)
+
+    wb = load_workbook(filename=temp)
+
+    temp.close()
 
     ws = wb.active
 
@@ -92,9 +114,6 @@ def reply_with_screenshots(request_data):
 
     cg = CreativeGroup(name=campaign_name)
     cg.save()
-
-    # a list of failed screenshots
-    errors = []
 
     for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
         creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg)
@@ -109,26 +128,19 @@ def reply_with_screenshots(request_data):
             creative.remove_blocking()
 
         creative.take_screenshot()
+        creative.save_image()
 
-        # save screenshots returns a creative name if it failed
-        error = creative.save_screenshot()
+    zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(cg.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
 
-        if error:
-            errors.append(error)
+    with ZipFile(zip_path, 'w',) as file:
 
-    print(errors)
+        i = 1
 
-    if errors:
-        slack_client.chat_postMessage(channel=channel, text=f"I had some issues "
-                                                            f"taking screenshots for {pprint.pprint(errors)}.")
+        for creative in cg.creative_set.all():
 
-    file_zip = cg.create_zip()
+            if f'{creative.name}.png' in file.namelist():
+                file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
+                i += 1
 
-    # File zip returns the path of the saved zip or False if there was an error
-    if not file_zip:
-        slack_client.chat_postMessage(channel=channel, text=f"I was not able to save the screenshots. "
-                                                            f"Give it another try and if it still doesnt work, "
-                                                            f"please let @zach know")
-
-    slack_client.chat_postMessage(channel=channel, text='Here you go. Screenshots attached below')
-    slack_client.files_upload(file=file_zip, channels=channel)
+            else:
+                file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
