@@ -144,3 +144,5 @@ def reply_with_screenshots(request_data):
 
             else:
                 file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+
+    slack_client.files_upload(channels=channel, file=zip_path)
