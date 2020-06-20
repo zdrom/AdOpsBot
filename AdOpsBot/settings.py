@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'events',
     'huey.contrib.djhuey',
     'storages',
+    'background_task',
 ]
 
 MIDDLEWARE = [

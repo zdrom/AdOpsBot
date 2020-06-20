@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from slack import WebClient
-from tasks import reply_with_template, reply_with_instructions, reply_with_screenshots
+from background_tasks import reply_with_template, reply_with_instructions, reply_with_screenshots
 
 client = WebClient(config('SLACK_BOT_TOKEN'))
 
@@ -43,14 +43,14 @@ class Events(APIView):
 
             elif 'template' in message_text.lower():
 
-                # Huey Task
+                # background task
                 reply_with_template(event_channel)
 
                 return Response(status=status.HTTP_200_OK)
 
             else:
 
-                # Huey Task
+                # background task
                 reply_with_instructions(event_channel)
 
                 return Response(status=status.HTTP_200_OK)
