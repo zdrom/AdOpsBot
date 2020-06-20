@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 import requests
 from decouple import config
+from django.core.files.storage import default_storage
 from openpyxl import load_workbook
 from slack import WebClient
 from django.conf import settings
@@ -62,11 +63,10 @@ def reply_with_template(channel):
     slack_client = WebClient(config('SLACK_BOT_TOKEN'))
     slack_client.chat_postMessage(channel=channel, text='Here ya go!')
 
-    # If I want to change the template I need to uncomment here
     # response = slack_client.files_remote_add(external_id='screenshot_template',
-    #                               external_url=default_storage.url('/template.xlsx'),
+    #                               external_url=f'{settings.MEDIA_ROOT}/template.xlsx',
     #                               title='Template')
-
+    #
     # print(response)
 
     slack_client.files_remote_share(channels=channel, file='F015JDNQWSH')
