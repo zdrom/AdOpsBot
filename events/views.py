@@ -62,7 +62,6 @@ class Events(APIView):
             user = slack_client.users_info(user=user_id)
 
             if user['user']['is_bot']:
-                print('user is bot returning 200')
                 return Response(status=status.HTTP_200_OK)
 
             reply_with_screenshots(slack_data)

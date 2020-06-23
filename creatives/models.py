@@ -10,12 +10,18 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 import requests
+
+from AdOpsBot import settings
 from creative_groups.models import CreativeGroup
 
 import requests
 from decouple import config
 from io import BytesIO
 from PIL import Image, UnidentifiedImageError
+
+logging.basicConfig(filename='creatives.log', filemode='w', level=logging.DEBUG)
+
+logging.debug('Testing Log')
 
 
 class Creative(models.Model):
@@ -172,11 +178,14 @@ class Creative(models.Model):
 
         # Uses the HCTI API to take a screenshot of the ad tag code provided
 
-        hcti_api_endpoint = "https://hcti.io/v1/image?ms_delay=3000"
+        hcti_api_endpoint = "https://hcti.io/v1/image"
         hcti_api_user_id = config('hcti_api_user_id')
         hcti_api_key = config('hcti_api_key')
 
-        data = {'html': self.use_correct_markup()}
+        data = {
+            'html': self.use_correct_markup(),
+            'ms_elay': 5000
+        }
 
         image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))
 
@@ -184,6 +193,9 @@ class Creative(models.Model):
         self.save()
 
     def save_image(self):
+
+        logging.debug(f'Saving Creative: {self.name}')
+
         r = requests.get(self.screenshot_url, auth=(config('hcti_api_user_id'), config('hcti_api_key')))
 
         try:
@@ -197,6 +209,20 @@ class Creative(models.Model):
             return self.name
 
         buffer = BytesIO()
+
+        '''
+        API Automatically saves at 2X images for retina purposes
+        Resize to proper dimensions
+        '''
+
+        width, height = i.size
+
+        logging.debug(f'width: {width} and height: {height}')
+
+        new_width = width / 2
+        new_height = height / 2
+
+        i.resize(new_width, new_height)
 
         i.save(buffer, format='PNG')
 

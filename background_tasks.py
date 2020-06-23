@@ -1,8 +1,10 @@
 import datetime
+import logging
+import math
 import pprint
 import tempfile
 import urllib
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipFile
 
 import requests
 from decouple import config
@@ -10,15 +12,20 @@ from django.core.files.storage import default_storage
 from openpyxl import load_workbook
 from slack import WebClient
 from django.conf import settings
+from django.db import IntegrityError
 
 from creative_groups.models import CreativeGroup
 from creatives.models import Creative
 from background_task import background
 
+slack_client = WebClient(config('SLACK_BOT_TOKEN'))
+
+log = logging.getLogger("django")
+
 
 @background(schedule=1)
 def reply_with_instructions(channel):
-    slack_client = WebClient(config('SLACK_BOT_TOKEN'))
+
     slack_client.chat_postMessage(
         channel=channel,
         blocks=[
@@ -60,7 +67,6 @@ def reply_with_instructions(channel):
 
 @background(schedule=1)
 def reply_with_template(channel):
-    slack_client = WebClient(config('SLACK_BOT_TOKEN'))
     slack_client.chat_postMessage(channel=channel, text='Here ya go!')
 
     # response = slack_client.files_remote_add(external_id='screenshot_template',
@@ -74,7 +80,6 @@ def reply_with_template(channel):
 
 @background(schedule=1)
 def reply_with_screenshots(request_data):
-    slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
     file_info = slack_client.files_info(file=request_data['event']['file_id'])
 
@@ -92,7 +97,29 @@ def reply_with_screenshots(request_data):
 
     temp.write(r.content)
 
-    wb = load_workbook(filename=temp)
+    try:
+
+        wb = load_workbook(filename=temp)
+
+    except IOError:
+
+        '''
+        
+        If a user uploads a file that doesnt work 
+        e.g. the incorrect template
+        respond with the correct template
+        
+        '''
+
+        slack_client.chat_postMessage(channel=channel,
+                                      text="hmmmm I had trouble processing the uploaded file. "
+                                           "Are you sure you used the correct template?"
+                                           " To confirm, try again using the one attached below")
+
+        slack_client.files_remote_share(channels=channel,
+                                        file='F015JDNQWSH')
+
+        return
 
     temp.close()
 
@@ -106,11 +133,20 @@ def reply_with_screenshots(request_data):
     cg = CreativeGroup(name=campaign_name)
     cg.save()
 
-    for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
-        creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg)
-        creative.save()
+    errors = []
 
-        pprint.pprint(f'created {creative.name}')
+    for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
+
+        try:
+
+            creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg)
+            creative.save()
+
+            log.info(f'successfully Created: {creative.name}')
+
+        except IntegrityError:
+
+            log.exception(f'Error Saving Creative: {creative.name}')
 
         creative.determine_adserver()
         creative.has_blocking()
@@ -119,21 +155,54 @@ def reply_with_screenshots(request_data):
             creative.remove_blocking()
 
         creative.take_screenshot()
-        creative.save_image()
+
+        ''' 
+        Save_image returns the creative name if there is an error
+        push the creative name to an list to return to the user if there are errors
+        '''
+
+        creative_name = creative.save_image()
+
+        if creative_name is not None:
+            errors.append(creative_name)
 
     zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(cg.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
 
-    with ZipFile(zip_path, 'w',) as file:
+    try:
 
-        i = 1
+        with ZipFile(zip_path, 'w',) as file:
 
-        for creative in cg.creative_set.all():
+            i = 1
 
-            if f'{creative.name}.png' in file.namelist():
-                file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
-                i += 1
+            for creative in cg.creative_set.all():
 
-            else:
-                file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+                # If the screenshot image was not saved successfully
+                # Do not try to add it to the zip
+
+                try:
+
+                    if f'{creative.name}.png' in file.namelist():
+                        file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
+                        i += 1
+
+                    else:
+                        file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+
+                except ValueError:
+                    log.error(f'Skipping over {creative.name} because there was no screenshot file')
+    except BadZipFile:
+
+        log.exception(msg='Bad Zip File found')
 
     slack_client.files_upload(channels=channel, file=zip_path)
+
+    if errors:
+        slack_client.chat_postMessage(channel=channel,
+                                      text=f"I had some issues taking screenshots for the following creatives\n"
+                                           f"{pprint.pprint(errors)}\n"
+                                           f"Try uploading the template again with the creatives that didnt work."
+                                           f"If you receive this message again, "
+                                           f"try taking them manually by going to a tag "
+                                           f"tester like https://www.cs.iupui.edu/~ajharris/webprog/jsTester.html\n"
+                                           f"Sorry for the inconvenience!")
+
