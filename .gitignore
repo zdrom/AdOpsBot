@@ -151,3 +151,4 @@ dmypy.json
 /.DS_Store
 /huey.db-wal
 /huey.db-shm
+/creatives/.DS_Store

@@ -1,11 +1,11 @@
 # A creative is an ad tag
 
 import io
+from pprint import pprint
 import re
 import logging
 from urllib.parse import urlparse
 
-import PIL
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
@@ -19,9 +19,7 @@ from decouple import config
 from io import BytesIO
 from PIL import Image, UnidentifiedImageError
 
-logging.basicConfig(filename='creatives.log', filemode='w', level=logging.DEBUG)
-
-logging.debug('Testing Log')
+log = logging.getLogger("django")
 
 
 class Creative(models.Model):
@@ -34,7 +32,7 @@ class Creative(models.Model):
     screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100,
                                    blank=True)
     screenshot_url = models.URLField(blank=True)
-    creative_group_id = models.ForeignKey(CreativeGroup,on_delete=models.CASCADE)
+    creative_group_id = models.ForeignKey(CreativeGroup, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -47,10 +45,8 @@ class Creative(models.Model):
         if search is None:
             self.adserver = 'unknown'
             self.save()
-            logging.debug('The adserver could not be determined')
+            log.warning('The adserver could not be determined')
             return
-
-        logging.debug(f'The adserver found is {search.group()}')
 
         if search.group() == 'ins':
             self.adserver = 'dcm ins'
@@ -62,11 +58,15 @@ class Creative(models.Model):
             self.adserver = 'sizmek'
 
         elif search.group() == 'servedby.flashtalking':
+            # If it's flashtalking, remove those _x000D_ from the mark up
+
+            self.markup = self.markup.replace('_x000D_', '')
+
             self.adserver = 'flashtalking'
 
         self.save()
 
-        logging.debug(f'The adserver is {self.adserver}')
+        log.info(f'The adserver is {self.adserver}')
 
         return
 
@@ -81,13 +81,16 @@ class Creative(models.Model):
         # set .blocking_vendor to blocking vendor found
         # return true
 
-        search = re.search(r'fw\.adsafeprotected|cdn\.doubleverify', self.markup)
+        # This will also test for monitoring as
+        # IAS monitoring scripts have caused image errors
+
+        search = re.search(r'adsafeprotected|cdn\.doubleverify', self.markup)
 
         if search is not None:
 
             self.blocking = True
 
-            if search.group() == 'fw.adsafeprotected':
+            if search.group() == 'adsafeprotected':
                 self.blocking_vendor = 'ias'
             elif search.group() == 'cdn.doubleverify':
                 self.blocking_vendor = 'dv'
@@ -108,10 +111,10 @@ class Creative(models.Model):
         # Uses the markup or markup_without_blocking depending on if has_blocking is true
 
         if self.blocking:
-            logging.debug('Using markup_without_blocking')
+            log.info('Using markup_without_blocking')
             return self.markup_without_blocking
         else:
-            logging.debug('Using markup_without_blocking')
+            log.info('Using markup_without_blocking')
             return self.markup
 
     def remove_blocking(self):
@@ -135,7 +138,22 @@ class Creative(models.Model):
                 tag_with_no_blocking = tag_with_no_blocking.replace('</scr+ipt>', '</script>')
 
         elif self.blocking_vendor == 'ias':
-            if self.adserver == 'dcm ins':
+
+            # Check for monitoring first and remove that script
+            # It will be the same regardless of tag type
+            # A tag will never have blocking and monitoring
+
+            search = re.search(r'pixel\.adsafeprotected', self.markup)
+
+            if search is not None:
+                script_regex = re.compile(r'''
+                    (.*<\/ins>)  # Use
+                    (.*)      # Remove
+                    ''', re.VERBOSE)
+
+                tag_with_no_blocking = re.sub(script_regex, r'\1', self.markup)
+
+            elif self.adserver == 'dcm ins':
 
                 script_regex = re.compile(r'''
                     (https://)  # Use
@@ -184,7 +202,7 @@ class Creative(models.Model):
 
         data = {
             'html': self.use_correct_markup(),
-            'ms_elay': 5000
+            'ms_delay': 4000
         }
 
         image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))
@@ -192,9 +210,12 @@ class Creative(models.Model):
         self.screenshot_url = image.json()['url']
         self.save()
 
+        log.info(f'Successfully took screenshot for {self.name}')
+        log.info(self.screenshot_url)
+
     def save_image(self):
 
-        logging.debug(f'Saving Creative: {self.name}')
+        log.info(f'Saving Creative: {self.name}')
 
         r = requests.get(self.screenshot_url, auth=(config('hcti_api_user_id'), config('hcti_api_key')))
 
@@ -204,12 +225,11 @@ class Creative(models.Model):
 
         except UnidentifiedImageError:
 
-            print(f'image error for {self.name}')
+            log.error(msg=f'image error for {self.name}')
 
             return self.name
 
         buffer = BytesIO()
-
         '''
         API Automatically saves at 2X images for retina purposes
         Resize to proper dimensions
@@ -217,12 +237,14 @@ class Creative(models.Model):
 
         width, height = i.size
 
-        logging.debug(f'width: {width} and height: {height}')
+        log.info(f'width: {width} and height: {height}')
 
-        new_width = width / 2
-        new_height = height / 2
+        new_width = int(width / 2)
+        new_height = int(height / 2)
 
-        i.resize(new_width, new_height)
+        new_dimensions = (new_width, new_height)
+
+        i = i.resize(new_dimensions)
 
         i.save(buffer, format='PNG')
 
@@ -236,3 +258,7 @@ class Creative(models.Model):
 
         self.screenshot = im
         self.save()
+
+        log.info(f'Successfully saved image for {self.name}')
+
+        return None
