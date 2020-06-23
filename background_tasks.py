@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import pprint
 import tempfile
 import urllib
@@ -67,13 +68,7 @@ def reply_with_instructions(channel):
 def reply_with_template(channel):
     slack_client.chat_postMessage(channel=channel, text='Here ya go!')
 
-    # response = slack_client.files_remote_add(external_id='screenshot_template',
-    #                               external_url=f'{settings.MEDIA_ROOT}/template.xlsx',
-    #                               title='Template')
-    #
-    # print(response)
-
-    slack_client.files_remote_share(channels=channel, file='F015JDNQWSH')
+    slack_client.files_upload(channels=channel, file=os.path.join(settings.MEDIA_ROOT, 'templates/template.xlsx'))
 
 
 @background(schedule=1)
