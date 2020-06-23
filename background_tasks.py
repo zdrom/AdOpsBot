@@ -32,7 +32,8 @@ def reply_with_instructions(channel):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": ('Hello! To get started, you\'ll need a template. '
+                    "text": ('Hello!\n'
+                             'To get started, you\'ll need a template. '
                              'If you don\'t have one, respond with _template_\n'
                              )
                 }
@@ -41,9 +42,12 @@ def reply_with_instructions(channel):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": ('If you have the template already,fill it out and upload it. '
-                             'There is a column for *name* (name each creative something unique), '
-                             'and a column for *ad tag*. Make sure when copying the ad tags into the '
+                    "text": ('If you have the template already, fill it out and upload it. '
+                             'There are columns for:\n\n'
+                             '*Name* (name each creative something unique), '
+                             'and\n'
+                             '*Ad Tag*\n\n'
+                             'Make sure when copying the ad tags into the '
                              'template that you don\'t accidentally add any other characters. '
                              'Excel likes to reformat tags sometimes.'
                              )
@@ -63,12 +67,16 @@ def reply_with_instructions(channel):
         ]
     )
 
+    log.info('Responded with instructions')
+
 
 @background(schedule=1)
 def reply_with_template(channel):
     slack_client.chat_postMessage(channel=channel, text='Here ya go!')
 
     slack_client.files_upload(channels=channel, file=os.path.join(settings.MEDIA_ROOT, 'templates/template.xlsx'))
+
+    log.info('Responded with the template')
 
 
 @background(schedule=1)
