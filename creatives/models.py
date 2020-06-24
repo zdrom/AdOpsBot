@@ -202,7 +202,7 @@ class Creative(models.Model):
 
         data = {
             'html': self.use_correct_markup(),
-            'ms_delay': 4000
+            'ms_delay': 3000
         }
 
         image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))

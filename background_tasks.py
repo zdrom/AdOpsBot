@@ -65,6 +65,7 @@ def reply_with_screenshots(request_data):
         channel = channel_list[0]
 
         slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
+        progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
 
         file_url = file_info['file']['url_private']
 
@@ -116,27 +117,24 @@ def reply_with_screenshots(request_data):
         # Progress Meter
         p = 1
 
-        def progress_meter(current_creative, max_creatives):
+        def progress(current_creative, max_creatives):
 
-            progress = round(current_creative / max_creatives * 10)
+            status = round(current_creative / max_creatives * 10)
 
             complete = '◼︎'
             to_do = '◻︎'
 
-            progress_display = f'{complete * progress}{to_do * (10 - progress)}'
+            progress_display = f'{complete * status}{to_do * (10 - status)}'
 
             return progress_display
 
         for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
 
-            # Creatives do not start until row 3 so max rows needs to be greater than 8
-
-            if p % 5 == 0 and ws.max_row > 8:
-                meter = progress_meter(p, ws.max_row)
-                slack_client.chat_postMessage(channel=channel,
-                                              text=meter)
-
+            # Start the progress meter
+            meter = progress(p, ws.max_row)
+            slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=meter)
             p += 1
+            # End the progress meter
 
             try:
 
@@ -195,7 +193,8 @@ def reply_with_screenshots(request_data):
 
             log.error('Bad Zip File')
 
-        slack_client.files_upload(channels=channel, file=zip_path)
+        slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
+        slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
 
         if errors:
             slack_client.chat_postMessage(channel=channel,
