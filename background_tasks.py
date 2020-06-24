@@ -24,47 +24,23 @@ log = logging.getLogger("django")
 
 @background(schedule=1)
 def reply_with_instructions(channel):
-
     slack_client.chat_postMessage(
         channel=channel,
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": ('Hello!\n'
-                             'To get started, you\'ll need a template. '
-                             'If you don\'t have one, respond with _template_\n'
-                             )
-                }
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": ('If you have the template already, fill it out and upload it. '
-                             'There are columns for:\n\n'
-                             '*Name* (name each creative something unique), '
-                             'and\n'
-                             '*Ad Tag*\n\n'
-                             'Make sure when copying the ad tags into the '
-                             'template that you don\'t accidentally add any other characters. '
-                             'Excel likes to reformat tags sometimes.'
-                             )
-                }
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": ('Don\'t worry about whether or not the'
-                             ' tags have blocking. I automatically remove blocking scripts before taking '
-                             ' screenshots. I\'ll upload the results here when I\'m done. Shouldn\'t '
-                             'take _too_ long\n'
-                             )
-                }
-            }
-        ]
+        text="Hello!\n\n"
+             "To get started, you\'ll need a template. "
+             "If you don\'t have one, respond with _template_\n\n"
+             "If you have the template already, fill it out and upload it. "
+             "There are columns for:\n\n"
+             "*Name* (name each creative something unique)\n "
+             "and\n"
+             "*Ad Tag*\n\n"
+             "Make sure when copying the ad tags into the "
+             "template that you don\'t accidentally add any other characters. "
+             "Excel likes to reformat tags sometimes.\n\n"
+             "Don\'t worry about whether or not the"
+             " tags have blocking. I automatically remove blocking scripts before taking "
+             "screenshots. I\"ll upload the results here when I\'m done.\n\n"
+             "Shouldn\'t take _too_ long\n"
     )
 
     log.info('Responded with instructions')
@@ -81,7 +57,6 @@ def reply_with_template(channel):
 
 @background(schedule=1)
 def reply_with_screenshots(request_data):
-
     try:
 
         file_info = slack_client.files_info(file=request_data['event']['file_id'])
@@ -138,7 +113,30 @@ def reply_with_screenshots(request_data):
 
         errors = []
 
+        # Progress Meter
+        p = 1
+
+        def progress_meter(current_creative, max_creatives):
+
+            progress = round(current_creative / max_creatives * 10)
+
+            complete = '◼︎'
+            to_do = '◻︎'
+
+            progress_display = f'{complete * progress}{to_do * (10 - progress)}'
+
+            return progress_display
+
         for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
+
+            # Creatives do not start until row 3 so max rows needs to be greater than 8
+
+            if p % 5 == 0 and ws.max_row > 8:
+                meter = progress_meter(p, ws.max_row)
+                slack_client.chat_postMessage(channel=channel,
+                                              text=meter)
+
+            p += 1
 
             try:
 
@@ -173,7 +171,7 @@ def reply_with_screenshots(request_data):
 
         try:
 
-            with ZipFile(zip_path, 'w',) as file:
+            with ZipFile(zip_path, 'w', ) as file:
 
                 i = 1
 
@@ -195,7 +193,7 @@ def reply_with_screenshots(request_data):
                         log.error(f'Skipping over {creative.name} because there was no screenshot file')
         except BadZipFile:
 
-            log.exception(msg='Bad Zip File found')
+            log.error('Bad Zip File')
 
         slack_client.files_upload(channels=channel, file=zip_path)
 
@@ -209,6 +207,5 @@ def reply_with_screenshots(request_data):
                                                f"tester like https://www.cs.iupui.edu/~ajharris/webprog/jsTester.html\n"
                                                f"Sorry for the inconvenience!")
 
-    except exceptions.BackgroundTaskError:
+    except exceptions.InvalidTaskError:
         log.exception('There was an issue with a background task')
-

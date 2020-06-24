@@ -29,6 +29,5 @@ class CreativeGroup(models.Model):
     def __str__(self):
         return self.name
 
-    def create_zip(self):
-        return
+
 
