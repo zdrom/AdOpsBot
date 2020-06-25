@@ -103,7 +103,9 @@ def reply_with_screenshots(request_data):
         slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
         progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
 
-        temp.close()
+        temp.close(
+
+        )
 
         ws = wb.active
 

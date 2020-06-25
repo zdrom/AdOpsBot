@@ -27,9 +27,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '0@ld4ve*2(0-%o(^=2*-2luq%-+26^9q43dz=luhate_5^o-nh'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if config('ENVIRONMENT') == 'production':
+    DEBUG = False
+else:
+    DEBUG = True
 
-ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), '430e90882015.ngrok.io']
+
+ALLOWED_HOSTS = [config('ALLOWED_HOSTS')]
 
 
 # Application definition
@@ -86,12 +90,24 @@ WSGI_APPLICATION = 'AdOpsBot.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+
+if config('ENVIRONMENT') == 'production':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'Zachromano$AdOpsBot',
+            'USER': 'Zachromano',
+            'PASSWORD': 'PYTHONANYWHERE_MYSQL_PASSWORD',
+            'HOST': 'Zachromano.mysql.pythonanywhere-services.com',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation
