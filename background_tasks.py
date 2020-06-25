@@ -31,15 +31,15 @@ def reply_with_instructions(channel):
              "If you don\'t have one, respond with _template_\n\n"
              "If you have the template already, fill it out and upload it. "
              "There are columns for:\n\n"
-             "*Name* (name each creative something unique)\n "
-             "and\n"
+             "*Name* (name each creative something unique)\n\n"
+             "and\n\n"
              "*Ad Tag*\n\n"
              "Make sure when copying the ad tags into the "
              "template that you don\'t accidentally add any other characters. "
              "Excel likes to reformat tags sometimes.\n\n"
              "Don\'t worry about whether or not the"
              " tags have blocking. I automatically remove blocking scripts before taking "
-             "screenshots. I\"ll upload the results here when I\'m done.\n\n"
+             "screenshots. I\'ll upload the results here when I\'m done.\n\n"
              "Shouldn\'t take _too_ long\n"
     )
 
@@ -99,6 +99,9 @@ def reply_with_screenshots(request_data):
                                             file='F015JDNQWSH')
 
             return
+
+        except BadZipFile:
+            log.error('Bad Zip File')
 
         temp.close()
 
@@ -167,31 +170,27 @@ def reply_with_screenshots(request_data):
 
         zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(cg.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
 
-        try:
+        with ZipFile(zip_path, 'w', ) as file:
 
-            with ZipFile(zip_path, 'w', ) as file:
+            i = 1
 
-                i = 1
+            for creative in cg.creative_set.all():
 
-                for creative in cg.creative_set.all():
+                # If the screenshot image was not saved successfully
+                # Do not try to add it to the zip
 
-                    # If the screenshot image was not saved successfully
-                    # Do not try to add it to the zip
+                try:
 
-                    try:
+                    if f'{creative.name}.png' in file.namelist():
+                        file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
+                        i += 1
 
-                        if f'{creative.name}.png' in file.namelist():
-                            file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
-                            i += 1
+                    else:
+                        file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
 
-                        else:
-                            file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
+                except ValueError:
+                    log.error(f'Skipping over {creative.name} because there was no screenshot file')
 
-                    except ValueError:
-                        log.error(f'Skipping over {creative.name} because there was no screenshot file')
-        except BadZipFile:
-
-            log.error('Bad Zip File')
 
         slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
         slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
