@@ -95,9 +95,9 @@ if config('ENVIRONMENT') == 'production':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'Zachromano$AdOpsBot',
+            'NAME': 'Zachromano$default',
             'USER': 'Zachromano',
-            'PASSWORD': 'PYTHONANYWHERE_MYSQL_PASSWORD',
+            'PASSWORD': config('PYTHONANYWHERE_MYSQL_PASSWORD'),
             'HOST': 'Zachromano.mysql.pythonanywhere-services.com',
         }
     }

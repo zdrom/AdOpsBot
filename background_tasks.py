@@ -77,6 +77,9 @@ def reply_with_screenshots(request_data):
 
             wb = load_workbook(filename=temp)
 
+            slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
+            progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
+
         except IOError:
 
             '''
@@ -99,9 +102,6 @@ def reply_with_screenshots(request_data):
 
         except BadZipFile:
             log.error('Bad Zip File')
-
-        slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
-        progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
 
         temp.close(
 
