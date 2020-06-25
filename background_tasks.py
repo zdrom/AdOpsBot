@@ -64,9 +64,6 @@ def reply_with_screenshots(request_data):
         channel_list = list(file_info['file']['shares']['private'].keys())
         channel = channel_list[0]
 
-        slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
-        progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
-
         file_url = file_info['file']['url_private']
 
         r = requests.get(file_url, headers={'Authorization': 'Bearer %s' % config('SLACK_BOT_TOKEN')})
@@ -101,7 +98,10 @@ def reply_with_screenshots(request_data):
             return
 
         except BadZipFile:
-            log.exception(msg='Bad Zip File')
+            log.error('Bad Zip File')
+
+        slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
+        progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
 
         temp.close()
 
