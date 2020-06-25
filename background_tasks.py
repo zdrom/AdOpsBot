@@ -190,7 +190,6 @@ def reply_with_screenshots(request_data):
                 except ValueError:
                     log.error(f'Skipping over {creative.name} because there was no screenshot file')
 
-
         slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
         slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
 

@@ -114,7 +114,6 @@ class Creative(models.Model):
             log.info('Using markup_without_blocking')
             return self.markup_without_blocking
         else:
-            log.info('Using markup_without_blocking')
             return self.markup
 
     def remove_blocking(self):
@@ -143,27 +142,28 @@ class Creative(models.Model):
             # It will be the same regardless of tag type
             # A tag will never have blocking and monitoring
 
-            search = re.search(r'pixel\.adsafeprotected', self.markup)
+            monitoring = re.search(r'pixel\.adsafeprotected', self.markup)
 
-            if search is not None:
-                script_regex = re.compile(r'''
-                    (.*<\/ins>)  # Use
-                    (.*)      # Remove
-                    ''', re.VERBOSE)
+            if self.adserver == 'dcm ins':
 
-                tag_with_no_blocking = re.sub(script_regex, r'\1', self.markup)
+                if monitoring is not None:
+                    script_regex = re.compile(r'''
+                        (.*</ins>)  # Use
+                        (.*)      # Remove
+                        ''', re.VERBOSE)
 
-            elif self.adserver == 'dcm ins':
+                    tag_with_no_blocking = re.sub(script_regex, r'\1', self.markup)
 
-                script_regex = re.compile(r'''
-                    (https://)  # Use
-                    (fw\.adsafeprotected\.com/rjss/)      # Remove
-                    (www\.googletagservices\.com)         # Use
-                    (/[0-9]*/[0-9]*)                      # Remove
-                    (/dcm/dcmads\.js)                     # Use
-                    ''', re.VERBOSE)
+                else:
+                    script_regex = re.compile(r'''
+                        (https://)  # Use
+                        (fw\.adsafeprotected\.com/rjss/)      # Remove
+                        (www\.googletagservices\.com)         # Use
+                        (/[0-9]*/[0-9]*)                      # Remove
+                        (/dcm/dcmads\.js)                     # Use
+                        ''', re.VERBOSE)
 
-                tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
+                    tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
 
             elif self.adserver == 'dcm legacy':
                 script_regex = re.compile(r'''
@@ -188,6 +188,16 @@ class Creative(models.Model):
                     ''', re.VERBOSE)
 
                 tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
+
+            elif self.adserver == 'flashtalking':
+                if monitoring is not None:
+                    script_regex = re.compile(
+                        r'<SCRIPT TYPE="application/javascript" '
+                        r'SRC="https://pixel\.adsafeprotected\.com.*skeleton.js"></SCRIPT>'
+                        r'(?:.*skeleton.gif" BORDER=0 WIDTH=1 HEIGHT=1 ALT=""></NOSCRIPT>)*'
+                        , re.DOTALL)
+
+                    tag_with_no_blocking = re.sub(script_regex, r'', self.markup)
 
         self.markup_without_blocking = tag_with_no_blocking
         self.save()
