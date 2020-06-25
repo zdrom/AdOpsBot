@@ -140,6 +140,9 @@ def reply_with_screenshots(request_data):
 
             try:
 
+                if columns[0] is None:  # For blank rows that accidentally get captured as non blank
+                    continue
+
                 creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg)
                 creative.save()
 
