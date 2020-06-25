@@ -101,7 +101,7 @@ def reply_with_screenshots(request_data):
             return
 
         except BadZipFile:
-            log.error('Bad Zip File')
+            log.exception(msg='Bad Zip File')
 
         temp.close()
 
