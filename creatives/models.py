@@ -38,6 +38,10 @@ class Creative(models.Model):
     def __str__(self):
         return self.name
 
+    def clean_up(self):
+        self.markup = self.markup.replace('_x000D_', '')
+        self.save()
+
     def determine_adserver(self):
 
         search = re.search(r'ins|doubleclick|bs\.serving|servedby\.flashtalking|adsafeprotected\.com/rjss/dc',
@@ -59,10 +63,6 @@ class Creative(models.Model):
             self.adserver = 'sizmek'
 
         elif search.group() == 'servedby.flashtalking':
-            # If it's flashtalking, remove those _x000D_ from the mark up
-
-            self.markup = self.markup.replace('_x000D_', '')
-
             self.adserver = 'flashtalking'
 
         self.save()

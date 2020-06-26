@@ -159,6 +159,7 @@ def reply_with_screenshots(request_data, user_name):
                                               text=f"User: {user_name} || "
                                                    f"Error: Could not save creative {creative.name}")
 
+            creative.clean_up()
             creative.determine_adserver()
             creative.has_blocking()
 
