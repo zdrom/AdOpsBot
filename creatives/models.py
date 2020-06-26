@@ -24,6 +24,7 @@ log = logging.getLogger("django")
 
 class Creative(models.Model):
     name = models.CharField(max_length=100)
+    requested_by = models.CharField(max_length=100, blank=True)
     adserver = models.CharField(max_length=30, blank=True)
     blocking = models.NullBooleanField(null=True, blank=True)
     blocking_vendor = models.CharField(max_length=30, blank=True)

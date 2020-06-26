@@ -56,7 +56,8 @@ def reply_with_template(channel):
 
 
 @background(schedule=1)
-def reply_with_screenshots(request_data):
+def reply_with_screenshots(request_data, user_name):
+
     try:
 
         file_info = slack_client.files_info(file=request_data['event']['file_id'])
@@ -94,6 +95,8 @@ def reply_with_screenshots(request_data):
 
             slack_client.files_remote_share(channels=channel,
                                             file='F015JDNQWSH')
+
+            slack_client.chat_postMessage(channel='DSNPWMH88', text=f'User: {user_name} || Error: Incorrect Template')
 
             return
 
@@ -140,10 +143,11 @@ def reply_with_screenshots(request_data):
 
             try:
 
-                if columns[0] is None:  # For blank rows that accidentally get captured as non blank
+                if columns[0] is None or columns[1] is None:  # For blank rows that accidentally get captured as non blank
+                    log.info('Blank row incorrectly categorized as non-blank -- Skipping')
                     continue
 
-                creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg)
+                creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg, requested_by=user_name)
                 creative.save()
 
                 log.info(f'successfully Created: {creative.name}')
@@ -151,6 +155,9 @@ def reply_with_screenshots(request_data):
             except IntegrityError:
 
                 log.exception(f'Error Saving Creative: {creative.name}')
+                slack_client.chat_postMessage(channel='DSNPWMH88',
+                                              text=f"User: {user_name} || "
+                                                   f"Error: Could not save creative {creative.name}")
 
             creative.determine_adserver()
             creative.has_blocking()
@@ -194,7 +201,16 @@ def reply_with_screenshots(request_data):
                     log.error(f'Skipping over {creative.name} because there was no screenshot file')
 
         slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
-        slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
+
+        screenshot_count = cg.creative_set.all().count() - len(errors)
+
+        log.info(f'Screenshot count: {screenshot_count}')
+
+        slack_client.chat_postMessage(channel=channel, text=f'All set. {screenshot_count} screenshots attached below')
+
+        # Only upload the zip file if there are some creatives without errors
+        if len(errors) != cg.creative_set.all().count():
+            slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
 
         if errors:
             slack_client.chat_postMessage(channel=channel,
@@ -208,3 +224,11 @@ def reply_with_screenshots(request_data):
 
     except exceptions.InvalidTaskError:
         log.exception('There was an issue with a background task')
+
+
+@background(schedule=1)
+def reply_with_stats(channel):
+    creatives = Creative.objects.all()
+    text = f'I have taken {creatives.count()} screenshots'
+    slack_client.chat_postMessage(channel=channel, text=text)
+
