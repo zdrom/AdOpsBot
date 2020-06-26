@@ -37,7 +37,7 @@ class Events(APIView):
             message_text = event.get('text')
 
             # ignore bot's own message
-            if event.get('bot_id') or message_text == '':
+            if event.get('bot_id') or message_text == '' or message_text is None:
 
                 return Response(status=status.HTTP_200_OK)
 
