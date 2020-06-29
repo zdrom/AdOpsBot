@@ -69,7 +69,7 @@ class Creative(models.Model):
 
         log.info(f'The adserver is {self.adserver}')
 
-        return
+        return self.adserver
 
     def has_blocking(self):
 
@@ -137,15 +137,31 @@ class Creative(models.Model):
 
                 tag_with_no_blocking = tag_with_no_blocking.replace('</scr+ipt>', '</script>')
 
+            elif self.adserver == 'sizmek':
+                search = re.search(
+                    r'<script type="text/adtag">(.*)<script language="javascript".*',
+                    self.markup, re.DOTALL)
+                tag_with_no_blocking = search.group(1)
+
         elif self.blocking_vendor == 'ias':
 
             # Check for monitoring first and remove that script
+            # Monitoring breaks the screenshot API
             # It will be the same regardless of tag type
             # A tag will never have blocking and monitoring
 
             monitoring = re.search(r'pixel\.adsafeprotected', self.markup)
 
-            if self.adserver == 'dcm ins':
+            if monitoring is not None:
+                script_regex = re.compile(
+                    r'<SCRIPT TYPE="application/javascript" '
+                    r'SRC="https://pixel\.adsafeprotected\.com.*skeleton.js"></SCRIPT>'
+                    r'(?:.*skeleton.gif" BORDER=0 WIDTH=1 HEIGHT=1 ALT=""></NOSCRIPT>)*'
+                    , re.DOTALL)
+
+                tag_with_no_blocking = re.sub(script_regex, r'', self.markup)
+
+            elif self.adserver == 'dcm ins':
 
                 if monitoring is not None:
                     script_regex = re.compile(r'''
@@ -191,17 +207,12 @@ class Creative(models.Model):
                 tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
 
             elif self.adserver == 'flashtalking':
-                if monitoring is not None:
-                    script_regex = re.compile(
-                        r'<SCRIPT TYPE="application/javascript" '
-                        r'SRC="https://pixel\.adsafeprotected\.com.*skeleton.js"></SCRIPT>'
-                        r'(?:.*skeleton.gif" BORDER=0 WIDTH=1 HEIGHT=1 ALT=""></NOSCRIPT>)*'
-                        , re.DOTALL)
-
-                    tag_with_no_blocking = re.sub(script_regex, r'', self.markup)
+                pass
 
         self.markup_without_blocking = tag_with_no_blocking
         self.save()
+
+        return tag_with_no_blocking
 
     def take_screenshot(self):
 
