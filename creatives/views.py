@@ -1,17 +1,24 @@
+import hashlib
+import hmac
+import json
+import urllib.parse as urlparse
+from urllib.parse import parse_qs
+
+import requests
 from decouple import config
 from django.http import HttpResponse, FileResponse
+from django.views.decorators.csrf import csrf_exempt
 from openpyxl import load_workbook
+
+from background_tasks import reply_with_preview
 from .models import Creative
 from creative_groups.models import CreativeGroup
 import logging
 
-from slack import WebClient
-from slack.errors import SlackApiError
-
 from rest_framework import viewsets
 from .serializers import CreativeSerializer
 
-logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger("django")
 
 
 class CreativeViewSet(viewsets.ModelViewSet):
@@ -19,26 +26,33 @@ class CreativeViewSet(viewsets.ModelViewSet):
     serializer_class = CreativeSerializer
 
 
-def save_creatives(request):
-    wb = load_workbook(filename='/Users/zachromano/PycharmProjects/AdOpsBot/creatives/test.xlsx')
-    ws = wb.active
+@csrf_exempt
+def preview(request):
+    if request.POST:
+        if request_valid(request):
 
-    logging.debug(f"name of the creative group is {ws['B1'].value}")
+            parsed = urlparse.urlparse(request.body.decode())
+            text = parse_qs(parsed.path)['text'][0]
+            user = parse_qs(parsed.path)['user_name'][0]
+            response_url = parse_qs(parsed.path)['response_url'][0]
 
-    cg = CreativeGroup(name=ws['B1'].value)
-    cg.save()
+            reply_with_preview(text, user, response_url)
+            return HttpResponse(status=200)
 
-    for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
 
-        logging.warning(f'Column 0: {columns[0]}')  # The creative name
+def request_valid(request):
+    # confirm that the request is from slack
+    signing_secret = config('SLACK_SIGNING_SECRET')
+    signing_secret_in_bytes = bytes(signing_secret, "utf-8")
+    request_body = request.body.decode()
+    request_timestamp = request.headers.get('X-Slack-Request-Timestamp')
+    basestring = f'v0:{request_timestamp}:{request_body}'.encode('utf-8')
+    my_signature = 'v0=' + hmac.new(signing_secret_in_bytes, basestring, hashlib.sha256).hexdigest()
 
-        creative = Creative(name=columns[0], markup=columns[1], blocking=False, creative_group_id=cg)
-        creative.save()
+    slack_signature = request.headers.get('X-Slack-Signature')
 
-        creative.make_creative()
-
-    file_zip = cg.create_zip()
-
-    # return HttpResponse('OK')
-
-    return FileResponse(open(file_zip, 'rb'), as_attachment=True)
+    if hmac.compare_digest(my_signature, slack_signature):
+        return True
+    else:
+        print("Verification failed. Signature invalid.")
+        return False

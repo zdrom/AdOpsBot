@@ -33,7 +33,7 @@ else:
     DEBUG = True
 
 
-ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), '371acfcdd645.ngrok.io']
+ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), 'cbf1077e48a1.ngrok.io']
 
 
 # Application definition
@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'creative_groups.apps.CreativeGroupsConfig',
     'rest_framework',
     'events',
-    'huey.contrib.djhuey',
     'storages',
     'background_task',
 ]
@@ -160,27 +159,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 #         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
 #     ]
 # }
-
-HUEY = {
-    'huey_class': 'huey.SqliteHuey',  # Huey implementation to use.
-    'name': settings.DATABASES['default']['NAME'],  # Use db name for huey.
-    'results': True,  # Store return values of tasks.
-    'store_none': False,  # If a task returns None, do not save to results.
-    'immediate': False,  # If DEBUG=True, run synchronously.
-    'utc': True,  # Use UTC for all times internally.
-    'consumer': {
-        'workers': 1,
-        'worker_type': 'thread',
-        'initial_delay': 0.1,  # Smallest polling interval, same as -d.
-        'backoff': 1.15,  # Exponential backoff using this rate, -b.
-        'max_delay': 10.0,  # Max possible polling interval, -m.
-        'scheduler_interval': 1,  # Check schedule every second, -s.
-        'periodic': True,  # Enable crontab feature.
-        'check_worker_health': True,  # Enable worker health checks.
-        'health_check_interval': 1,  # Check worker health every second.
-    },
-}
-
 
 # AWS Storage Set Up
 

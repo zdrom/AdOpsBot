@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 import pprint
@@ -57,7 +58,6 @@ def reply_with_template(channel):
 
 @background(schedule=1)
 def reply_with_screenshots(request_data, user_name):
-
     try:
 
         file_info = slack_client.files_info(file=request_data['event']['file_id'])
@@ -233,3 +233,69 @@ def reply_with_stats(channel):
     text = f'I have taken {creatives.count()} screenshots'
     slack_client.chat_postMessage(channel=channel, text=text)
 
+
+# Slash Commands
+@background(schedule=1)
+def reply_with_preview(text, user, response_url):
+    log.info('Replying with preview')
+    log.info(f'User: {user} & Response URL: {response_url}')
+
+    creative = Creative()
+    creative.name = 'slash command creative'
+    creative.requested_by = user
+    creative.markup = text
+    creative.clean_up()
+    creative.determine_adserver()
+
+    if creative.has_blocking():
+        creative.remove_blocking()
+
+    creative.take_screenshot()
+
+    creative.save()
+
+    if creative.has_blocking():
+        response_string = 'Here is the tag you sent me with blocking removed.'
+        markup = creative.markup_without_blocking
+    else:
+        response_string = 'Here is the tag you sent me'
+        markup = creative.markup
+
+    text = f'''
+                    [
+                        {{
+                            "type": "section",
+                            "text": {{
+                                "type": "mrkdwn",
+                                "text": ":white_check_mark: {response_string}"
+                            }}
+                        }},
+                        {{
+                            "type": "section",
+                            "text": {{
+                                "type": "mrkdwn",
+                                "text": {json.dumps(f'```{markup}```')}
+                            }}
+                        }},
+                        {{
+                            "type": "section",
+                            "text": {{
+                                "type": "mrkdwn",
+                                "text": ":mag: Below is a preview of the creative."
+                            }}
+                        }},
+                        {{
+                            "type": "image",
+                            "image_url": "{creative.screenshot_url}",
+                            "alt_text": "Ad Tag"
+                        }},
+
+                    ]
+                    '''
+
+    post_data = {'blocks': text}
+    post = requests.post(url=response_url, json=post_data)
+
+    print(text)
+
+    print(post.text)

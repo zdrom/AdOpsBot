@@ -33,12 +33,20 @@ class Creative(models.Model):
     screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100,
                                    blank=True)
     screenshot_url = models.URLField(blank=True)
-    creative_group_id = models.ForeignKey(CreativeGroup, on_delete=models.CASCADE)
+    creative_group_id = models.ForeignKey(CreativeGroup, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return self.name
 
     def clean_up(self):
+        # Remove Potential formatting that slack adds
+        self.markup = re.sub(pattern=r'^```|```$', repl='', string=self.markup)
+        self.markup = re.sub(pattern='/^`|`$/', repl='', string=self.markup)
+        # Slack replaces the straight quotes with angled quotes -- swap straight quotes back in
+        self.markup = self.markup.replace('’', "'")
+        self.markup = self.markup.replace('‘', "'")
+        self.markup = self.markup.replace('“', '"')
+        self.markup = self.markup.replace('”', '"')
         self.markup = self.markup.replace('_x000D_', '')
         self.save()
 

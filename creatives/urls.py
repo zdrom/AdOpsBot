@@ -7,7 +7,7 @@ router.register(r'creatives', views.CreativeViewSet)
 
 app_name = 'creatives'
 urlpatterns = [
-    path('home/', views.save_creatives, name='index'),
     path('', include(router.urls)),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('preview/', views.preview, name='preview')
 ]
