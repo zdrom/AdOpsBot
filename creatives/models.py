@@ -232,6 +232,7 @@ class Creative(models.Model):
 
         data = {
             'html': self.use_correct_markup(),
+            'device_scale': 1,
             'ms_delay': 3000
         }
 
@@ -260,21 +261,22 @@ class Creative(models.Model):
             return self.name
 
         buffer = BytesIO()
-        '''
-        API Automatically saves at 2X images for retina purposes
-        Resize to proper dimensions
-        '''
-
-        width, height = i.size
-
-        log.info(f'width: {width} and height: {height}')
-
-        new_width = int(width / 2)
-        new_height = int(height / 2)
-
-        new_dimensions = (new_width, new_height)
-
-        i = i.resize(new_dimensions)
+        
+        # '''
+        # API Automatically saves at 2X images for retina purposes
+        # Resize to proper dimensions
+        # '''
+        #
+        # width, height = i.size
+        #
+        # log.info(f'width: {width} and height: {height}')
+        #
+        # new_width = int(width / 2)
+        # new_height = int(height / 2)
+        #
+        # new_dimensions = (new_width, new_height)
+        #
+        # i = i.resize(new_dimensions)
 
         i.save(buffer, format='PNG')
 
