@@ -21,6 +21,7 @@ import logging
 
 log = logging.getLogger("django")
 
+
 @csrf_exempt
 def bot(request):
 
