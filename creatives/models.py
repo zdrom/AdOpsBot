@@ -261,7 +261,7 @@ class Creative(models.Model):
             return self.name
 
         buffer = BytesIO()
-        
+
         # '''
         # API Automatically saves at 2X images for retina purposes
         # Resize to proper dimensions

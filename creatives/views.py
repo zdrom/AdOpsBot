@@ -1,6 +1,8 @@
+import ast
 import hashlib
 import hmac
 import json
+import pprint
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 
@@ -9,28 +11,97 @@ from decouple import config
 from django.http import HttpResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from openpyxl import load_workbook
+from slack import WebClient
 
-from background_tasks import reply_with_preview
+from background_tasks import reply_with_preview, reply_with_stats, reply_with_template, reply_with_instructions, \
+    reply_with_screenshots
 from .models import Creative
 from creative_groups.models import CreativeGroup
 import logging
 
-from rest_framework import viewsets
-from .serializers import CreativeSerializer
-
 log = logging.getLogger("django")
 
+@csrf_exempt
+def bot(request):
 
-class CreativeViewSet(viewsets.ModelViewSet):
-    queryset = Creative.objects.all().order_by('name')
-    serializer_class = CreativeSerializer
+    slack_client = WebClient(config('SLACK_BOT_TOKEN'))
+
+    slack_data = json.loads(request.body)
+
+    if slack_data.get('token') != config('SLACK_VERIFICATION_TOKEN'):
+        return HttpResponse(status=403)
+
+    if slack_data.get('type') == 'url_verification':
+        return HttpResponse(content=slack_data,
+                            status=200)
+
+    event_type = slack_data['event']['type']
+
+    if event_type == 'message':
+
+        event = slack_data['event']
+        event_channel = slack_data['event']['channel']
+        message_text = event.get('text')
+
+        # ignore bot's own message
+        if event.get('bot_id') or message_text == '' or message_text is None:
+
+            return HttpResponse(status=200)
+
+        elif 'stats' in message_text.lower():
+
+            # background task
+            reply_with_stats(event_channel)
+
+            return HttpResponse(status=200)
+
+        elif 'template' in message_text.lower():
+
+            # background task
+            reply_with_template(event_channel)
+
+            return HttpResponse(status=200)
+
+        else:
+
+            # background task
+            reply_with_instructions(event_channel)
+
+            return HttpResponse(status=200)
+
+    elif event_type == 'file_shared':
+
+        # If a bot shared file, return 200 OK
+        user_id = slack_data['event']['user_id']
+        user = slack_client.users_info(user=user_id)
+        user_name = user.get('user').get('real_name')
+
+        if user['user']['is_bot']:
+            return HttpResponse(status=200)
+
+        reply_with_screenshots(slack_data, user_name)
+
+        return HttpResponse(status=200)
+
+    else:
+
+        pprint.pprint(f'''
+
+                    Neither Message nor File Shared
+
+                    f'{request.headers}
+
+                    f'{slack_data}
+
+                ''')
+
+    return HttpResponse(status=200)
 
 
 @csrf_exempt
 def preview(request):
     if request.POST:
         if request_valid(request):
-
             parsed = urlparse.urlparse(request.body.decode())
             text = parse_qs(parsed.path)['text'][0]
             user = parse_qs(parsed.path)['user_name'][0]

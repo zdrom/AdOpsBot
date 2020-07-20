@@ -48,8 +48,6 @@ INSTALLED_APPS = [
     'screenshot.apps.ScreenshotConfig',
     'creatives.apps.CreativesConfig',
     'creative_groups.apps.CreativeGroupsConfig',
-    'rest_framework',
-    'events',
     'storages',
     'background_task',
 ]
