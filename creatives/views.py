@@ -32,7 +32,7 @@ def bot(request):
         return HttpResponse(status=403)
 
     if slack_data.get('type') == 'url_verification':
-        return HttpResponse(content=slack_data,
+        return HttpResponse(content=slack_data['challenge'],
                             status=200)
 
     event_type = slack_data['event']['type']
