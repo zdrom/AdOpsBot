@@ -10,6 +10,7 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 import requests
+from django.utils import timezone
 
 from AdOpsBot import settings
 from creative_groups.models import CreativeGroup
@@ -34,6 +35,8 @@ class Creative(models.Model):
                                    blank=True)
     screenshot_url = models.URLField(blank=True)
     creative_group_id = models.ForeignKey(CreativeGroup, on_delete=models.CASCADE, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name

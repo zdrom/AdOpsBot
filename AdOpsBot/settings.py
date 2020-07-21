@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'screenshot.apps.ScreenshotConfig',
     'creatives.apps.CreativesConfig',
     'creative_groups.apps.CreativeGroupsConfig',
     'storages',
