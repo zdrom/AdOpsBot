@@ -11,6 +11,8 @@ from decouple import config
 from django.http import HttpResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from openpyxl import load_workbook
+
+from selenium.common.exceptions import NoSuchElementException
 from slack import WebClient
 
 from background_tasks import reply_with_preview, reply_with_stats, reply_with_template, reply_with_instructions, \
@@ -24,7 +26,6 @@ log = logging.getLogger("django")
 
 @csrf_exempt
 def bot(request):
-
     slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
     slack_data = json.loads(request.body)

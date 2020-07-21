@@ -11,6 +11,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 import requests
 from django.utils import timezone
+from selenium.common.exceptions import NoSuchElementException
 
 from AdOpsBot import settings
 from creative_groups.models import CreativeGroup
@@ -19,6 +20,8 @@ import requests
 from decouple import config
 from io import BytesIO
 from PIL import Image, UnidentifiedImageError
+
+from selenium import webdriver
 
 log = logging.getLogger("django")
 
@@ -35,6 +38,7 @@ class Creative(models.Model):
                                    blank=True)
     screenshot_url = models.URLField(blank=True)
     creative_group_id = models.ForeignKey(CreativeGroup, on_delete=models.CASCADE, blank=True, null=True)
+    click_through = models.CharField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -132,7 +136,7 @@ class Creative(models.Model):
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
                 search = re.search(
-                    r'((<script type="text\/adtag">\n)(.*<\/ins>)(.*))',
+                    r'((<script type="text/adtag">\n)(.*<\/ns>)(.*))',
                     self.markup, re.DOTALL)
 
                 tag_with_no_blocking = search.group(3)
@@ -141,7 +145,7 @@ class Creative(models.Model):
 
             elif self.adserver == 'dcm legacy':
                 search = re.search(
-                    r'(<script type=\"text/adtag\">\n)(.*<\/scr\+ipt>)(.*)',
+                    r'(<script type=\"text/adtag\">\n)(.*</scr\+ipt>)(.*)',
                     self.markup, re.DOTALL)
 
                 tag_with_no_blocking = search.group(2)
@@ -297,3 +301,28 @@ class Creative(models.Model):
         log.info(f'Successfully saved image for {self.name}')
 
         return None
+
+    def validate_click_through(self):
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        browser = webdriver.Chrome(options=chrome_options)
+
+        html_doc = self.use_correct_markup()
+
+        try:
+            browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
+            a = browser.find_element_by_tag_name('a')
+            a.click()
+            browser.switch_to.window(browser.window_handles[1])
+            self.click_through = browser.current_url
+
+        except NoSuchElementException:
+
+            self.click_through = 'Invalid'
+
+        finally:
+            self.save()
+            return self.click_through
+            browser.quit()
+
