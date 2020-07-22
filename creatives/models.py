@@ -1,27 +1,24 @@
 # A creative is an ad tag
 
-import io
-from pprint import pprint
+
 import re
 import logging
-from urllib.parse import urlparse
 
-from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
-import requests
-from django.utils import timezone
-from selenium.common.exceptions import NoSuchElementException
 
-from AdOpsBot import settings
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+
 from creative_groups.models import CreativeGroup
 
 import requests
 from decouple import config
 from io import BytesIO
 from PIL import Image, UnidentifiedImageError
-
-from selenium import webdriver
 
 log = logging.getLogger("django")
 
@@ -304,7 +301,7 @@ class Creative(models.Model):
 
     def validate_click_through(self):
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
@@ -312,9 +309,43 @@ class Creative(models.Model):
 
         try:
             browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
-            a = browser.find_element_by_tag_name('a')
-            a.click()
+
+            if self.adserver == 'dcm ins' or self.adserver == 'dcm legacy':
+                el = browser.find_element_by_tag_name('a')
+            if self.adserver == 'sizmek':
+                imgs = browser.find_elements_by_tag_name('img')
+                # in case there are any 1x1s
+                # find the image that has dimensions greater than 1x1
+                for img in imgs:
+                    print(int(img.get_attribute('width')) > 1)
+                    if int(img.get_attribute('width')) > 1:
+                        el = img
+                        break
+            if self.adserver == 'flashtalking':
+                # served in an iframe
+                browser.switch_to.frame(0)
+                # in case there are any 1x1s
+                # find the image that has dimensions greater than 1x1
+                imgs = browser.find_elements_by_tag_name('img')
+                for img in imgs:
+                    if int(img.get_attribute('width')) > 1:
+                        el = img
+                        break
+
+            el.click()
+
+            # switch to the newly opened tab
             browser.switch_to.window(browser.window_handles[1])
+
+            '''
+            Primarily for sizmek but this makes sure that an actual url is captured
+            instead of about:blank
+            , for instance
+            '''
+
+            WebDriverWait(browser, 10).until(
+                EC.url_contains('http'))
+
             self.click_through = browser.current_url
 
         except NoSuchElementException:
@@ -323,6 +354,6 @@ class Creative(models.Model):
 
         finally:
             self.save()
-            return self.click_through
+            return f'Click through: {self.click_through}'
             browser.quit()
 
