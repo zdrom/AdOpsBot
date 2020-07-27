@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'creatives.apps.CreativesConfig',
     'creative_groups.apps.CreativeGroupsConfig',
+    'bamboo.apps.BambooConfig',
     'storages',
     'background_task',
 ]
