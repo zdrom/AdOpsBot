@@ -35,7 +35,7 @@ class Command(BaseCommand):
             is_are = '{}'.format(pluralize(len(pto_today), 'is, are'))
             person_people = '{}'.format(pluralize(len(pto_today), 'person, people'))
 
-            message = f'*There{is_are} {len(pto_today)}{person_people} on PTO today*\n'
+            message = f'*There{ is_are} {len(pto_today)}{ person_people} on PTO today*\n'
             for person in pto_today:
                 message += f'{person}\n'
             message += '*Please keep an eye on the coverage queue!*'

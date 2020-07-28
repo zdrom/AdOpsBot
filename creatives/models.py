@@ -27,6 +27,9 @@ class Creative(models.Model):
     name = models.CharField(max_length=100)
     requested_by = models.CharField(max_length=100, blank=True)
     adserver = models.CharField(max_length=30, blank=True)
+    width = models.IntegerField(blank=True, null=True)
+    height = models.IntegerField(blank=True, null=True)
+    placement_id = models.CharField(max_length=50, blank=True)
     blocking = models.NullBooleanField(null=True, blank=True)
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
@@ -225,6 +228,64 @@ class Creative(models.Model):
         self.save()
 
         return tag_with_no_blocking
+
+    def get_dimensions(self):
+        if self.adserver == 'unknown':
+            log.info('The adserver is unknown so cannot find dimensions')
+            return
+
+        elif self.adserver == 'dcm ins':
+            pattern = r'width:([0-9]*).*height:([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.width = match[1]
+            self.height = match[2]
+
+        elif self.adserver == 'dcm legacy':
+            pattern = r'sz=([0-9]*)x([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.width = match[1]
+            self.height = match[2]
+
+        elif self.adserver == 'sizmek':
+            pattern = r'w=([0-9]*)&h=([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.width = match[1]
+            self.height = match[2]
+
+        elif self.adserver == 'flashtalking':
+            pattern = r'ft_width=([0-9]*)&ft_height=([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.width = match[1]
+            self.height = match[2]
+
+        self.save()
+
+    def get_placement_id(self):
+        if self.adserver == 'unknown':
+            log.info('The adserver is unknown so cannot find dimensions')
+            return
+
+        elif self.adserver == 'dcm ins':
+            pattern = r"data-dcm-placement='\S*\.([0-9]*)'"
+            match = re.search(pattern, self.use_correct_markup())
+            self.placement_id = match[1]
+
+        elif self.adserver == 'dcm legacy':
+            pattern = r'\S*\.\S*/\S*\.([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.placement_id = match[1]
+
+        elif self.adserver == 'sizmek':
+            pattern = r'&pli=([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.placement_id = match[1]
+
+        elif self.adserver == 'flashtalking':
+            pattern = r'ftClick_([0-9]*)'
+            match = re.search(pattern, self.use_correct_markup())
+            self.placement_id = match[1]
+
+        self.save()
 
     def take_screenshot(self):
 
