@@ -311,7 +311,6 @@ def process_for_ad_ops(creative_group_id, channel):
 
         creative.get_placement_id()
         creative.get_dimensions()
-        creative.validate_click_through()
 
         creative.take_screenshot()
 
@@ -324,6 +323,8 @@ def process_for_ad_ops(creative_group_id, channel):
 
         if creative_name is not None:
             errors.append(creative_name)
+
+    creative_group.validate_click_through()
 
     out = Workbook()
 
