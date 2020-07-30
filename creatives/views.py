@@ -16,7 +16,7 @@ from selenium.common.exceptions import NoSuchElementException
 from slack import WebClient
 
 from background_tasks import reply_with_preview, reply_with_stats, reply_with_template, reply_with_instructions, \
-    reply_with_screenshots
+    reply_with_screenshots, router
 from .models import Creative
 from creative_groups.models import CreativeGroup
 import logging
@@ -81,7 +81,9 @@ def bot(request):
         if user['user']['is_bot']:
             return HttpResponse(status=200)
 
-        reply_with_screenshots(slack_data, user_name)
+        # router(slack_data, user_name)
+
+        router.now(slack_data, user_name)
 
         return HttpResponse(status=200)
 

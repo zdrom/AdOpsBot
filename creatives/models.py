@@ -327,22 +327,6 @@ class Creative(models.Model):
 
         buffer = BytesIO()
 
-        # '''
-        # API Automatically saves at 2X images for retina purposes
-        # Resize to proper dimensions
-        # '''
-        #
-        # width, height = i.size
-        #
-        # log.info(f'width: {width} and height: {height}')
-        #
-        # new_width = int(width / 2)
-        # new_height = int(height / 2)
-        #
-        # new_dimensions = (new_width, new_height)
-        #
-        # i = i.resize(new_dimensions)
-
         i.save(buffer, format='PNG')
 
         im = InMemoryUploadedFile(

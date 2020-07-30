@@ -33,7 +33,7 @@ else:
     DEBUG = True
 
 
-ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), 'cbf1077e48a1.ngrok.io']
+ALLOWED_HOSTS = [config('ALLOWED_HOSTS'), 'cc30027b9174.ngrok.io']
 
 
 # Application definition

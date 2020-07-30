@@ -5,11 +5,16 @@ import os
 import pprint
 import tempfile
 import urllib
+from io import BytesIO
 from zipfile import ZipFile, BadZipFile
 
 import requests
 from decouple import config
-from openpyxl import load_workbook
+from django.core.files.storage import default_storage
+from django.utils import timezone
+from openpyxl import load_workbook, Workbook
+from openpyxl.drawing.image import Image
+from openpyxl.styles import Alignment
 from slack import WebClient
 from django.conf import settings
 from django.db import IntegrityError
@@ -57,174 +62,147 @@ def reply_with_template(channel):
 
 
 @background(schedule=1)
-def reply_with_screenshots(request_data, user_name):
-    try:
+def router(request_data, user_name):
+    # A function that chooses the correct function depending on the value of A1 in the spreadsheet
 
-        file_info = slack_client.files_info(file=request_data['event']['file_id'])
+    file_info = slack_client.files_info(file=request_data['event']['file_id'])
+    file_url = file_info['file']['url_private']
 
-        channel_list = list(file_info['file']['shares']['private'].keys())
-        channel = channel_list[0]
+    channel_list = list(file_info['file']['shares']['private'].keys())
+    channel = channel_list[0]
 
-        file_url = file_info['file']['url_private']
+    r = requests.get(file_url, headers={'Authorization': 'Bearer %s' % config('SLACK_BOT_TOKEN')})
+    r.raise_for_status
 
-        r = requests.get(file_url, headers={'Authorization': 'Bearer %s' % config('SLACK_BOT_TOKEN')})
-        r.raise_for_status
+    uploaded = default_storage.save(f'uploaded_spreadsheets/{datetime.datetime.now().timestamp()}.xlsx', BytesIO(r.content))
 
-        temp = tempfile.TemporaryFile(mode='w+b')
+    wb = load_workbook(filename=default_storage.path(uploaded))
 
-        temp.write(r.content)
+    ws = wb.active
+
+    if ws['B1'].value is None:
+        campaign_name = 'campaign'
+    else:
+        campaign_name = ws['B1'].value
+
+    creative_group = CreativeGroup(name=campaign_name)
+    creative_group.save()
+
+    for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
 
         try:
 
-            wb = load_workbook(filename=temp)
+            if columns[0] is None or columns[1] is None:  # For blank rows that accidentally get captured as non blank
+                log.info('Blank row incorrectly categorized as non-blank -- Skipping')
+                continue
 
-        except IOError:
+            creative = Creative(name=columns[0], markup=columns[1], creative_group_id=creative_group,
+                                requested_by=user_name)
+            creative.save()
 
-            '''
-            
-            If a user uploads a file that doesnt work 
-            e.g. the incorrect template
-            respond with the correct template
-            
-            '''
+            log.info(f'successfully Created: {creative.name}')
 
-            slack_client.chat_postMessage(channel=channel,
-                                          text="hmmmm I had trouble processing the uploaded file. "
-                                               "Are you sure you used the correct template?"
-                                               " To confirm, try again using the one attached below")
+        except IntegrityError:
 
-            slack_client.files_remote_share(channels=channel,
-                                            file='F015JDNQWSH')
+            log.exception(f'Error Saving Creative: {creative.name}')
+            slack_client.chat_postMessage(channel='DSNPWMH88',
+                                          text=f"User: {user_name} || "
+                                               f"Error: Could not save creative {creative.name}")
 
-            slack_client.chat_postMessage(channel='DSNPWMH88', text=f'User: {user_name} || Error: Incorrect Template')
+        creative.clean_up()
+        creative.determine_adserver()
+        creative.has_blocking()
 
-            return
+        if creative.blocking:
+            creative.remove_blocking()
 
-        # Place this after the try block incase there is a bad zip error
+    if ws['A1'].value == 'AdOps Template':
+        log.info('Processing for AdOps')
+        process_for_ad_ops(creative_group.pk, channel)
+    else:
+        log.info('Processing for Account Management')
+        reply_with_screenshots(creative_group.pk, channel)
 
-        slack_client.chat_postMessage(channel=channel, text='Confirming receipt. Be back soon.')
-        progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
 
-        temp.close()
+@background(schedule=1)
+def reply_with_screenshots(creative_group_id, channel):
+    creative_group = CreativeGroup.objects.get(pk=creative_group_id)
 
-        ws = wb.active
+    log.info(f'Creative Group == {creative_group}')
 
-        if ws['B1'].value is None:
-            campaign_name = 'campaign'
-        else:
-            campaign_name = ws['B1'].value
+    progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
 
-        cg = CreativeGroup(name=campaign_name)
-        cg.save()
+    errors = []
 
-        errors = []
+    p = 1
 
-        # Progress Meter
-        p = 1
+    log.info(f'Creative Group == {creative_group.creative_set.all()}')
 
-        def progress(current_creative, max_creatives):
+    for creative in creative_group.creative_set.all():
 
-            status = round(current_creative / max_creatives * 10)
+        # Start the progress meter
+        meter = progress(p, len(creative_group.creative_set.all()))
+        slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=meter)
+        p += 1
+        # End the progress meter
 
-            complete = '◼︎'
-            to_do = '◻︎'
+        creative.take_screenshot()
 
-            progress_display = f'{complete * status}{to_do * (10 - status)}'
+        ''' 
+        Save_image returns the creative name if there is an error
+        push the creative name to an list to return to the user if there are errors
+        '''
 
-            return progress_display
+        creative_name = creative.save_image()
 
-        for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
+        if creative_name is not None:
+            errors.append(creative_name)
 
-            # Start the progress meter
-            meter = progress(p, ws.max_row)
-            slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=meter)
-            p += 1
-            # End the progress meter
+    zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(creative_group.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
+
+    with ZipFile(zip_path, 'w', ) as file:
+
+        i = 1
+
+        for creative in creative_group.creative_set.all():
+
+            # If the screenshot image was not saved successfully
+            # Do not try to add it to the zip
 
             try:
 
-                if columns[0] is None or columns[1] is None:  # For blank rows that accidentally get captured as non blank
-                    log.info('Blank row incorrectly categorized as non-blank -- Skipping')
-                    continue
+                if f'{creative.name}.png' in file.namelist():
+                    file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
+                    i += 1
 
-                creative = Creative(name=columns[0], markup=columns[1], creative_group_id=cg, requested_by=user_name)
-                creative.save()
+                else:
+                    file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
 
-                log.info(f'successfully Created: {creative.name}')
+            except ValueError:
+                log.error(f'Skipping over {creative.name} because there was no screenshot file')
 
-            except IntegrityError:
+    slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
 
-                log.exception(f'Error Saving Creative: {creative.name}')
-                slack_client.chat_postMessage(channel='DSNPWMH88',
-                                              text=f"User: {user_name} || "
-                                                   f"Error: Could not save creative {creative.name}")
+    screenshot_count = creative_group.creative_set.all().count() - len(errors)
 
-            creative.clean_up()
-            creative.determine_adserver()
-            creative.has_blocking()
+    log.info(f'Screenshot count: {screenshot_count}')
 
-            if creative.blocking:
-                creative.remove_blocking()
+    slack_client.chat_postMessage(channel=channel,
+                                  text=f'All set. {screenshot_count} screenshots attached below')
 
-            creative.take_screenshot()
+    # Only upload the zip file if there are some creatives without errors
+    if len(errors) != creative_group.creative_set.all().count():
+        slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
 
-            ''' 
-            Save_image returns the creative name if there is an error
-            push the creative name to an list to return to the user if there are errors
-            '''
-
-            creative_name = creative.save_image()
-
-            if creative_name is not None:
-                errors.append(creative_name)
-
-        zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(cg.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
-
-        with ZipFile(zip_path, 'w', ) as file:
-
-            i = 1
-
-            for creative in cg.creative_set.all():
-
-                # If the screenshot image was not saved successfully
-                # Do not try to add it to the zip
-
-                try:
-
-                    if f'{creative.name}.png' in file.namelist():
-                        file.write(creative.screenshot.path, arcname=f'{creative.name}_{i}.png')
-                        i += 1
-
-                    else:
-                        file.write(creative.screenshot.path, arcname=f'{creative.name}.png')
-
-                except ValueError:
-                    log.error(f'Skipping over {creative.name} because there was no screenshot file')
-
-        slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
-
-        screenshot_count = cg.creative_set.all().count() - len(errors)
-
-        log.info(f'Screenshot count: {screenshot_count}')
-
-        slack_client.chat_postMessage(channel=channel, text=f'All set. {screenshot_count} screenshots attached below')
-
-        # Only upload the zip file if there are some creatives without errors
-        if len(errors) != cg.creative_set.all().count():
-            slack_client.files_upload(channels=channel, file=zip_path)  # Upload the zip
-
-        if errors:
-            slack_client.chat_postMessage(channel=channel,
-                                          text=f"I had some issues taking screenshots for the following creatives\n"
-                                               f"{errors}\n"
-                                               f"Try uploading the template again with the creatives that didnt work."
-                                               f"If you receive this message again, "
-                                               f"try taking them manually by going to a tag "
-                                               f"tester like https://www.cs.iupui.edu/~ajharris/webprog/jsTester.html\n"
-                                               f"Sorry for the inconvenience!")
-
-    except exceptions.InvalidTaskError:
-        log.exception('There was an issue with a background task')
+    if errors:
+        slack_client.chat_postMessage(channel=channel,
+                                      text=f"I had some issues taking screenshots for the following creatives\n"
+                                           f"{errors}\n"
+                                           f"Try uploading the template again with the creatives that didnt work."
+                                           f"If you receive this message again, "
+                                           f"try taking them manually by going to a tag "
+                                           f"tester like https://www.cs.iupui.edu/~ajharris/webprog/jsTester.html\n"
+                                           f"Sorry for the inconvenience!")
 
 
 @background(schedule=1)
@@ -299,3 +277,115 @@ def reply_with_preview(text, user, response_url):
     print(text)
 
     print(post.text)
+
+
+# Helpers
+def progress(current_creative, max_creatives):
+    status = round(current_creative / max_creatives * 10)
+
+    complete = '◼︎'
+    to_do = '◻︎'
+
+    progress_display = f'{complete * status}{to_do * (10 - status)}'
+
+    return progress_display
+
+
+@background(schedule=1)
+def process_for_ad_ops(creative_group_id, channel):
+    creative_group = CreativeGroup.objects.get(pk=creative_group_id)
+
+    progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
+
+    errors = []
+
+    p = 1
+
+    for creative in creative_group.creative_set.all():
+
+        # Start the progress meter
+        meter = progress(p, len(creative_group.creative_set.all()))
+        slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=meter)
+        p += 1
+        # End the progress meter
+
+        creative.get_placement_id()
+        creative.get_dimensions()
+        creative.validate_click_through()
+
+        creative.take_screenshot()
+
+        ''' 
+        Save_image returns the creative name if there is an error
+        push the creative name to an list to return to the user if there are errors
+        '''
+
+        creative_name = creative.save_image()
+
+        if creative_name is not None:
+            errors.append(creative_name)
+
+    out = Workbook()
+
+    dest_filename = default_storage.path(f'saved_spreadsheets/{datetime.datetime.now().timestamp()}.xlsx')
+
+    ws1 = out.active
+    ws1.title = "Template"
+
+    ws1.column_dimensions['A'].width = 25
+    ws1.column_dimensions['B'].width = 15
+    ws1.column_dimensions['C'].width = 15
+    ws1.column_dimensions['D'].width = 15
+    ws1.column_dimensions['E'].width = 100
+    ws1.column_dimensions['F'].width = 25
+    ws1.column_dimensions['G'].width = 25
+
+    ws1['A1'] = 'Creative Name'
+    ws1['B1'] = 'Placement ID'
+    ws1['C1'] = 'Width'
+    ws1['D1'] = 'Height'
+    ws1['E1'] = 'Mark Up'
+    ws1['F1'] = 'Click Through'
+    ws1['G1'] = 'Preview'
+
+    row = 2
+
+    for creative in creative_group.creative_set.all():
+        log.info(creative.screenshot.path)
+        img = Image(creative.screenshot.path)
+
+        ws1.add_image(img, f'G{row}')
+
+        ws1.row_dimensions[row].height = creative.height
+
+        name = ws1.cell(row=row, column=1)
+        name.value = creative.name
+        name.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        placement_id = ws1.cell(row=row, column=2)
+        placement_id.value = creative.placement_id
+        placement_id.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        width = ws1.cell(row=row, column=3)
+        width.value = creative.width
+        width.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        height = ws1.cell(row=row, column=4)
+        height.value = creative.height
+        height.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        markup = ws1.cell(row=row, column=5)
+        markup.value = creative.markup
+        markup.alignment = Alignment(wrap_text=True, vertical='center')
+
+        click_through = ws1.cell(row=row, column=6)
+        click_through.value = creative.click_through
+        click_through.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        row += 1
+
+    out.save(filename=dest_filename)
+
+    slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])  # Delete the progress meter once done
+
+    slack_client.files_upload(channels=channel, file=dest_filename)  # Upload the zip
