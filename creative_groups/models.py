@@ -24,7 +24,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
+log = logging.getLogger("django")
 
 
 class CreativeGroup(models.Model):
@@ -43,12 +43,15 @@ class CreativeGroup(models.Model):
         creatives = self.creative_set.all()
 
         for creative in creatives:
+
+            html_doc = creative.use_correct_markup()
+
             try:
                 browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
-                if self.adserver == 'dcm ins' or self.adserver == 'dcm legacy':
+                if creative.adserver == 'dcm ins' or creative.adserver == 'dcm legacy':
                     el = browser.find_element_by_tag_name('a')
-                if self.adserver == 'sizmek':
+                if creative.adserver == 'sizmek':
                     imgs = browser.find_elements_by_tag_name('img')
                     # in case there are any 1x1s
                     # find the image that has dimensions greater than 1x1
@@ -57,7 +60,7 @@ class CreativeGroup(models.Model):
                         if int(img.get_attribute('width')) > 1:
                             el = img
                             break
-                if self.adserver == 'flashtalking':
+                if creative.adserver == 'flashtalking':
                     # served in an iframe
                     browser.switch_to.frame(0)
                     # in case there are any 1x1s
@@ -82,9 +85,12 @@ class CreativeGroup(models.Model):
                 WebDriverWait(browser, 10).until(
                     EC.url_contains('http'))
 
-                self.click_through = browser.current_url
+                creative.click_through = browser.current_url
+
+                log.info(f'{creative.name} click through: {creative.click_through}')
 
             except NoSuchElementException:
+                log.info(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Invalid'
 
             creative.save()

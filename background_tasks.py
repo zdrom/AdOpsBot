@@ -311,8 +311,10 @@ def process_for_ad_ops(creative_group_id, channel):
 
         creative.get_placement_id()
         creative.get_dimensions()
+        creative.add_macros()
 
         creative.take_screenshot()
+
 
         ''' 
         Save_image returns the creative name if there is an error
@@ -334,19 +336,15 @@ def process_for_ad_ops(creative_group_id, channel):
     review.title = "Review"
     review.column_dimensions['A'].width = 25
     review.column_dimensions['B'].width = 15
-    review.column_dimensions['C'].width = 15
+    review.column_dimensions['C'].width = 100
     review.column_dimensions['D'].width = 15
-    review.column_dimensions['E'].width = 100
-    review.column_dimensions['F'].width = 25
-    review.column_dimensions['G'].width = 25
+    review.column_dimensions['E'].width = 40
 
     review['A1'] = 'Creative Name'
     review['B1'] = 'Placement ID'
-    review['C1'] = 'Width'
-    review['D1'] = 'Height'
-    review['E1'] = 'Mark Up'
-    review['F1'] = 'Click Through'
-    review['G1'] = 'Preview'
+    review['C1'] = 'Mark Up'
+    review['D1'] = 'Click Through'
+    review['E1'] = 'Preview'
 
     display = out.create_sheet("Display")
     display.column_dimensions['A'].width = 25
@@ -362,13 +360,12 @@ def process_for_ad_ops(creative_group_id, channel):
     display['C1'] = 'Dimensions'
     display['D1'] = 'Clickthrough URL'
     display['E1'] = 'Ad Markup'
-    display['F1'] = 'Click Through'
-    display['G1'] = 'Impression Tracker'
-    display['H1'] = 'Placement Name'
-    display['I1'] = 'Placement ID'
-    display['J1'] = 'MRAID?'
-    display['K1'] = 'Markup Type'
-    display['L1'] = 'Preview URL'
+    display['F1'] = 'Impression Tracker'
+    display['G1'] = 'Placement Name'
+    display['H1'] = 'Placement ID'
+    display['I1'] = 'MRAID?'
+    display['J1'] = 'Markup Type'
+    display['K1'] = 'Preview URL'
 
     row = 2
 
@@ -376,7 +373,7 @@ def process_for_ad_ops(creative_group_id, channel):
         log.info(creative.screenshot.path)
         img = Image(creative.screenshot.path)
 
-        review.add_image(img, f'G{row}')
+        review.add_image(img, f'E{row}')
 
         review.row_dimensions[row].height = creative.height
 
@@ -388,23 +385,38 @@ def process_for_ad_ops(creative_group_id, channel):
         placement_id.value = creative.placement_id
         placement_id.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
-        width = review.cell(row=row, column=3)
-        width.value = creative.width
-        width.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
-
-        height = review.cell(row=row, column=4)
-        height.value = creative.height
-        height.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
-
-        markup = review.cell(row=row, column=5)
+        markup = review.cell(row=row, column=3)
         markup.value = creative.markup
         markup.alignment = Alignment(wrap_text=True, vertical='center')
 
-        click_through = review.cell(row=row, column=6)
+        click_through = review.cell(row=row, column=4)
         click_through.value = creative.click_through
         click_through.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
+        # DISPLAY SHEET
+        display_name = display.cell(row=row, column=1)
+        display_name.value = creative.name
+        display_name.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
+        display_ad_format = display.cell(row=row, column=2)
+        display_ad_format.value = 'Display'
+        display_ad_format.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        display_dimensions = display.cell(row=row, column=3)
+        display_dimensions.value = f'{creative.width}x{creative.height}'
+        display_dimensions.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        display_click_through = display.cell(row=row, column=4)
+        display_click_through.value = creative.click_through
+        display_click_through.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        display_ad_markup = display.cell(row=row, column=5)
+        display_ad_markup.value = creative.markup_with_macros
+        display_ad_markup.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+        display_pid = display.cell(row=row, column=8)
+        display_pid.value = creative.markup_with_macros
+        display_pid.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
         row += 1
 
