@@ -362,6 +362,8 @@ def process_for_ad_ops(creative_group_id, channel):
 
         creative.take_screenshot()
 
+        creative.validate_click_through()
+
 
         ''' 
         Save_image returns the creative name if there is an error
@@ -373,7 +375,7 @@ def process_for_ad_ops(creative_group_id, channel):
         if creative_name is not None:
             errors.append(creative_name)
 
-    creative_group.validate_click_through()
+    # creative_group.validate_click_through()
 
     out = Workbook()
 
