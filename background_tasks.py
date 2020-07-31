@@ -424,7 +424,14 @@ def process_for_ad_ops(creative_group_id, channel):
 
         review.add_image(img, f'E{row}')
 
-        review.row_dimensions[row].height = creative.height
+        # A row height of 150 is the minimum that lets you see a whole DCM INS tag
+
+        if .75 * creative.height > 150:
+            row_height = .75 * creative.height
+        else:
+            row_height = 150
+
+        review.row_dimensions[row].height = row_height
 
         name = review.cell(row=row, column=1)
         name.value = creative.name
