@@ -14,7 +14,7 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 from openpyxl import load_workbook, Workbook
 from openpyxl.drawing.image import Image
-from openpyxl.styles import Alignment
+from openpyxl.styles import Alignment, Font
 from slack import WebClient
 from django.conf import settings
 from django.db import IntegrityError
@@ -240,36 +240,36 @@ def reply_with_preview(text, user, response_url):
         markup = creative.markup
 
     text = f'''
-                    [
-                        {{
-                            "type": "section",
-                            "text": {{
-                                "type": "mrkdwn",
-                                "text": ":white_check_mark: {response_string}"
-                            }}
-                        }},
-                        {{
-                            "type": "section",
-                            "text": {{
-                                "type": "mrkdwn",
-                                "text": {json.dumps(f'```{markup}```')}
-                            }}
-                        }},
-                        {{
-                            "type": "section",
-                            "text": {{
-                                "type": "mrkdwn",
-                                "text": ":mag: Below is a preview of the creative."
-                            }}
-                        }},
-                        {{
-                            "type": "image",
-                            "image_url": "{creative.screenshot_url}",
-                            "alt_text": "Ad Tag"
-                        }},
+            [
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": ":white_check_mark: {response_string}"
+                    }}
+                }},
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": {json.dumps(f'```{markup}```')}
+                    }}
+                }},
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": ":mag: Below is a preview of the creative."
+                    }}
+                }},
+                {{
+                    "type": "image",
+                    "image_url": "{creative.screenshot_url}",
+                    "alt_text": "Ad Tag"
+                }},
 
-                    ]
-                    '''
+            ]
+            '''
 
     post_data = {'blocks': text}
     post = requests.post(url=response_url, json=post_data)
@@ -385,7 +385,7 @@ def process_for_ad_ops(creative_group_id, channel):
     review.title = "Review"
     review.column_dimensions['A'].width = 25
     review.column_dimensions['B'].width = 15
-    review.column_dimensions['C'].width = 100
+    review.column_dimensions['C'].width = 110
     review.column_dimensions['D'].width = 15
     review.column_dimensions['E'].width = 40
 
@@ -397,10 +397,10 @@ def process_for_ad_ops(creative_group_id, channel):
 
     display = out.create_sheet("Display")
     display.column_dimensions['A'].width = 25
-    display.column_dimensions['B'].width = 15
-    display.column_dimensions['C'].width = 15
+    display.column_dimensions['B'].width = 10
+    display.column_dimensions['C'].width = 10
     display.column_dimensions['D'].width = 15
-    display.column_dimensions['E'].width = 100
+    display.column_dimensions['E'].width = 110
     display.column_dimensions['F'].width = 15
     display.column_dimensions['G'].width = 15
 
@@ -461,10 +461,10 @@ def process_for_ad_ops(creative_group_id, channel):
 
         display_ad_markup = display.cell(row=row, column=5)
         display_ad_markup.value = creative.markup_with_macros
-        display_ad_markup.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+        display_ad_markup.alignment = Alignment(wrap_text=True, vertical='center')
 
         display_pid = display.cell(row=row, column=8)
-        display_pid.value = creative.markup_with_macros
+        display_pid.value = creative.placement_id
         display_pid.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
         row += 1
