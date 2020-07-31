@@ -83,7 +83,7 @@ def bot(request):
 
         # router(slack_data, user_name)
 
-        router.now(slack_data, user_name)
+        router(slack_data, user_name)
 
         return HttpResponse(status=200)
 
