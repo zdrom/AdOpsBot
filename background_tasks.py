@@ -330,24 +330,45 @@ def process_for_ad_ops(creative_group_id, channel):
 
     dest_filename = default_storage.path(f'saved_spreadsheets/{datetime.datetime.now().timestamp()}.xlsx')
 
-    ws1 = out.active
-    ws1.title = "Template"
+    review = out.active
+    review.title = "Review"
+    review.column_dimensions['A'].width = 25
+    review.column_dimensions['B'].width = 15
+    review.column_dimensions['C'].width = 15
+    review.column_dimensions['D'].width = 15
+    review.column_dimensions['E'].width = 100
+    review.column_dimensions['F'].width = 25
+    review.column_dimensions['G'].width = 25
 
-    ws1.column_dimensions['A'].width = 25
-    ws1.column_dimensions['B'].width = 15
-    ws1.column_dimensions['C'].width = 15
-    ws1.column_dimensions['D'].width = 15
-    ws1.column_dimensions['E'].width = 100
-    ws1.column_dimensions['F'].width = 25
-    ws1.column_dimensions['G'].width = 25
+    review['A1'] = 'Creative Name'
+    review['B1'] = 'Placement ID'
+    review['C1'] = 'Width'
+    review['D1'] = 'Height'
+    review['E1'] = 'Mark Up'
+    review['F1'] = 'Click Through'
+    review['G1'] = 'Preview'
 
-    ws1['A1'] = 'Creative Name'
-    ws1['B1'] = 'Placement ID'
-    ws1['C1'] = 'Width'
-    ws1['D1'] = 'Height'
-    ws1['E1'] = 'Mark Up'
-    ws1['F1'] = 'Click Through'
-    ws1['G1'] = 'Preview'
+    display = out.create_sheet("Display")
+    display.column_dimensions['A'].width = 25
+    display.column_dimensions['B'].width = 15
+    display.column_dimensions['C'].width = 15
+    display.column_dimensions['D'].width = 15
+    display.column_dimensions['E'].width = 100
+    display.column_dimensions['F'].width = 15
+    display.column_dimensions['G'].width = 15
+
+    display['A1'] = 'Creative Name'
+    display['B1'] = 'Ad Format'
+    display['C1'] = 'Dimensions'
+    display['D1'] = 'Clickthrough URL'
+    display['E1'] = 'Ad Markup'
+    display['F1'] = 'Click Through'
+    display['G1'] = 'Impression Tracker'
+    display['H1'] = 'Placement Name'
+    display['I1'] = 'Placement ID'
+    display['J1'] = 'MRAID?'
+    display['K1'] = 'Markup Type'
+    display['L1'] = 'Preview URL'
 
     row = 2
 
@@ -355,33 +376,35 @@ def process_for_ad_ops(creative_group_id, channel):
         log.info(creative.screenshot.path)
         img = Image(creative.screenshot.path)
 
-        ws1.add_image(img, f'G{row}')
+        review.add_image(img, f'G{row}')
 
-        ws1.row_dimensions[row].height = creative.height
+        review.row_dimensions[row].height = creative.height
 
-        name = ws1.cell(row=row, column=1)
+        name = review.cell(row=row, column=1)
         name.value = creative.name
         name.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
-        placement_id = ws1.cell(row=row, column=2)
+        placement_id = review.cell(row=row, column=2)
         placement_id.value = creative.placement_id
         placement_id.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
-        width = ws1.cell(row=row, column=3)
+        width = review.cell(row=row, column=3)
         width.value = creative.width
         width.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
-        height = ws1.cell(row=row, column=4)
+        height = review.cell(row=row, column=4)
         height.value = creative.height
         height.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
-        markup = ws1.cell(row=row, column=5)
+        markup = review.cell(row=row, column=5)
         markup.value = creative.markup
         markup.alignment = Alignment(wrap_text=True, vertical='center')
 
-        click_through = ws1.cell(row=row, column=6)
+        click_through = review.cell(row=row, column=6)
         click_through.value = creative.click_through
         click_through.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+
 
         row += 1
 

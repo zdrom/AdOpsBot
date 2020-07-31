@@ -33,6 +33,7 @@ class Creative(models.Model):
     blocking = models.NullBooleanField(null=True, blank=True)
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
+    markup_with_macros = models.TextField(blank=True)
     markup_without_blocking = models.TextField(blank=True)
     screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100,
                                    blank=True)
@@ -398,7 +399,88 @@ class Creative(models.Model):
             self.click_through = 'Invalid'
 
         finally:
+            browser.quit()
             self.save()
             return f'Click through: {self.click_through}'
-            browser.quit()
+
+    def add_macros(self):
+
+        markup = self.markup
+
+        if self.adserver == 'unknown':
+            log.info('The adserver is unknown so cannot find dimensions')
+            return
+
+        elif self.adserver == 'dcm ins':
+
+            '''
+            Does the tag already have the resettable device ID param
+            If so, populate it with the IDFA macro
+            If not, add the param and the macro
+            '''
+
+            rdid = r"(data-dcm-resettable-device-id=')(')"
+
+            match = re.search(rdid, markup)
+
+            if match:
+                markup = re.sub(rdid, r"\1[IDFA]\2", markup)
+            else:
+                https = r"(data-dcm-https-only)"
+                markup = re.sub(https, r"\1\n    data-dcm-resettable-device-id='[IDFA]'", markup)
+
+            '''
+            Does the tag already have the click tracker field
+            If so, populate it with the encoded click macro
+            If not, add the param and the macro
+            '''
+
+            click_tracker = r"(data-dcm-click-tracker=')(')"
+
+            match = re.search(click_tracker, markup)
+
+            if match:
+                markup = re.sub(rdid, r"\1[ENCODEDCLICKURL]\2", markup)
+            else:
+                https = r"(data-dcm-https-only)"
+                markup = re.sub(https, r"\1\n    data-dcm-click-tracker='[ENCODEDCLICKURL]'", markup)
+
+        elif self.adserver == 'dcm legacy':
+            timestamp = r"(ord=\[timestamp];)"
+            markup = re.sub(timestamp, r"\1click=[ENCODEDCLICKURL];", markup)
+
+        elif self.adserver == 'sizmek':
+
+            '''
+            Find the pli param
+            add the encoded click before it
+            '''
+
+            pli = r"(&pli=)"
+            markup = re.sub(pli, r"&ncu=[ENCODEDCLICKURL]\1", markup)
+
+            '''
+            Add in the click URL for the noscript portion
+            '''
+
+            noscript = r"(href=\")(https://bs)"
+
+            match = re.search(noscript, markup)
+
+            if match:
+                markup = re.sub(noscript, r"\1[CLICKURL]\2", markup)
+
+        elif self.adserver == 'flashtalking':
+            noscript = r"(href=\")(https://servedby)"
+
+            match = re.search(noscript, markup)
+
+            if match:
+                markup = re.sub(noscript, r"\1[CLICKURL]\2", markup)
+
+            ft_click = r"(var ftClick = \")(\")"
+            markup = re.sub(ft_click, r"\1[ENCODEDCLICKURL]\2", markup)
+
+        self.markup_with_macros = markup
+        self.save()
 
