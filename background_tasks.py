@@ -279,6 +279,53 @@ def reply_with_preview(text, user, response_url):
     print(post.text)
 
 
+# Slash Commands
+@background(schedule=1)
+def reply_with_click_through(text, user, response_url):
+    log.info('Replying with click through')
+    log.info(f'User: {user} & Response URL: {response_url}')
+
+    creative = Creative()
+    creative.name = 'slash command creative'
+    creative.requested_by = user
+    creative.markup = text
+    creative.clean_up()
+    creative.determine_adserver()
+
+    if creative.has_blocking():
+        creative.remove_blocking()
+
+    creative.validate_click_through()
+
+    creative.save()
+
+    text = f'''
+            [
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": ":white_check_mark: Click Through Below"
+                    }}
+                }},
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": "{creative.click_through}"
+                    }}
+                }},
+            ]
+            '''
+
+    post_data = {'blocks': text}
+    post = requests.post(url=response_url, json=post_data)
+
+    print(text)
+
+    print(post.text)
+
+
 # Helpers
 def progress(current_creative, max_creatives):
     status = round(current_creative / max_creatives * 10)
