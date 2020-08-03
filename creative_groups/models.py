@@ -46,6 +46,8 @@ class CreativeGroup(models.Model):
 
             html_doc = creative.markup_with_macros_replaced
 
+            log.info(f'Mark Up with macros replaced: {creative.markup_with_macros_replaced}')
+
             try:
                 browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
@@ -81,6 +83,8 @@ class CreativeGroup(models.Model):
                 instead of about:blank
                 , for instance
                 '''
+
+                log.info(f'Waiting for this to contain http: {browser.current_url}')
 
                 WebDriverWait(browser, 10).until(
                     EC.url_contains('http'))
