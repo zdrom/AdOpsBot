@@ -44,7 +44,7 @@ class CreativeGroup(models.Model):
 
         for creative in creatives:
 
-            html_doc = creative.markup_with_macros_replaced()
+            html_doc = creative.markup_with_macros_replaced
 
             try:
                 browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))

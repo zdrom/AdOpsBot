@@ -362,7 +362,7 @@ class Creative(models.Model):
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
-        html_doc = self.markup_with_macros_replaced()
+        html_doc = self.markup_with_macros_replaced
 
         try:
             browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
