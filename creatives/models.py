@@ -12,7 +12,6 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-
 from creative_groups.models import CreativeGroup
 
 import requests
@@ -137,14 +136,14 @@ class Creative(models.Model):
     def remove_blocking(self):
 
         # make sure macros are included if they have been added
-        
+
         if self.markup_with_macros:
             markup = self.markup_with_macros
             log.info('Removing blocking from mark up with macros')
         else:
             markup = self.markup
             log.info('Removing blocking from markup')
-        
+
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
                 search = re.search(
@@ -234,7 +233,17 @@ class Creative(models.Model):
                 tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', markup)
 
             elif self.adserver == 'flashtalking':
-                pass
+                script_regex = re.compile(r'''
+                    (.*https://)                          # Use
+                    (fw\.adsafeprotected\.com/rjss/)      # Remove
+                    (.*/)                                 # Use
+                    ([0-9]*/[0-9]*/)                      # Remove
+
+                    # Note: Only unblocks script portion
+
+                    ''', re.VERBOSE)
+
+            tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
 
         self.markup_without_blocking = tag_with_no_blocking
         self.save()
@@ -508,5 +517,3 @@ class Creative(models.Model):
 
         self.markup_with_macros_replaced = markup.replace('[ENCODEDCLICKURL]', click_tracker)
         self.save()
-
-
