@@ -120,7 +120,7 @@ def router(request_data, user_name):
 
     if ws['A1'].value == 'AdOps Template':
         log.info('Processing for AdOps')
-        process_for_ad_ops.now(creative_group.pk, channel)
+        process_for_ad_ops(creative_group.pk, channel)
     else:
         log.info('Processing for Account Management')
         reply_with_screenshots(creative_group.pk, channel)
