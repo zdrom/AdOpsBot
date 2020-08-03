@@ -224,13 +224,12 @@ class Creative(models.Model):
                     (fw\.adsafeprotected\.com/rjss/)      # Remove
                     (.*/)                                 # Use
                     ([0-9]*/[0-9]*/)                      # Remove
-                    (.*</script>)                         # Use
                     
                     # Note: Only unblocks script portion
                     
                     ''', re.VERBOSE)
 
-                tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', markup)
+                tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
 
             elif self.adserver == 'flashtalking':
                 script_regex = re.compile(r'''
@@ -367,7 +366,7 @@ class Creative(models.Model):
 
     def validate_click_through(self):
         chrome_options = webdriver.ChromeOptions()
-        # chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 

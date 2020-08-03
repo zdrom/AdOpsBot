@@ -16,7 +16,7 @@ from selenium.common.exceptions import NoSuchElementException
 from slack import WebClient
 
 from background_tasks import reply_with_preview, reply_with_stats, reply_with_template, reply_with_instructions, \
-    reply_with_screenshots, router, reply_with_click_through
+    router, reply_with_click_through
 from .models import Creative
 from creative_groups.models import CreativeGroup
 import logging
