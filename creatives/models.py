@@ -203,10 +203,9 @@ class Creative(models.Model):
                         (fw\.adsafeprotected\.com/rjss/)      # Remove
                         (www\.googletagservices\.com)         # Use
                         (/[0-9]*/[0-9]*)                      # Remove
-                        (/dcm/dcmads\.js)                     # Use
                         ''', re.VERBOSE)
 
-                    tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', markup)
+                    tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
 
             elif self.adserver == 'dcm legacy':
                 script_regex = re.compile(r'''
