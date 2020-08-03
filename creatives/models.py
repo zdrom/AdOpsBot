@@ -504,7 +504,7 @@ class Creative(models.Model):
 
         markup = self.use_correct_markup()
 
-        click_tracker = 'https://rtb.adentifi.com/Clicks?crId=163837;sId=159128;lId=29432;cId=2603;adExchange=Nexage;action=click;adId=607d29cf-d58a-11ea-87d7-12a1a22bbcf8;adThdId=;engineId=i-025e141792472342b;dIp=MTIuMTc1LjE3MS4xNA;site=NjA3ZDI5YzktZDU4YS0xMWVhLTg3ZDctMTJhMWEyMmJiY2Y4;adThdIdCode=INVALID;dealId=0;geoId=55202;inventoryId=607d29cc-d58a-11ea-87d7-12a1a22bbcf8;rtdmIndicator=0;redir='
+        click_tracker = 'https%3A%2F%2Frtb.adentifi.com%2FClicks%3FcrId%3D163837%3BsId%3D159128%3BlId%3D29432%3BcId%3D2603%3BadExchange%3DNexage%3Baction%3Dclick%3BadId%3D607d29cf-d58a-11ea-87d7-12a1a22bbcf8%3BadThdId%3D%3BengineId%3Di-025e141792472342b%3BdIp%3DMTIuMTc1LjE3MS4xNA%3Bsite%3DNjA3ZDI5YzktZDU4YS0xMWVhLTg3ZDctMTJhMWEyMmJiY2Y4%3BadThdIdCode%3DINVALID%3BdealId%3D0%3BgeoId%3D55202%3BinventoryId%3D607d29cc-d58a-11ea-87d7-12a1a22bbcf8%3BrtdmIndicator%3D0%3Bredir%3D'
 
         self.markup_with_macros_replaced = markup.replace('[ENCODEDCLICKURL]', click_tracker)
         self.save()
