@@ -44,7 +44,7 @@ class CreativeGroup(models.Model):
 
         for creative in creatives:
 
-            html_doc = creative.markup_with_macros_replaced
+            html_doc = creative.use_correct_markup()
 
             log.info(f'Mark Up with macros replaced: {creative.markup_with_macros_replaced}')
 

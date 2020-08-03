@@ -358,11 +358,11 @@ class Creative(models.Model):
 
     def validate_click_through(self):
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
-        html_doc = self.markup_with_macros_replaced
+        html_doc = self.use_correct_markup()
 
         try:
             browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
