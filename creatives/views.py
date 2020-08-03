@@ -81,8 +81,6 @@ def bot(request):
         if user['user']['is_bot']:
             return HttpResponse(status=200)
 
-        # router(slack_data, user_name)
-
         router(slack_data, user_name)
 
         return HttpResponse(status=200)

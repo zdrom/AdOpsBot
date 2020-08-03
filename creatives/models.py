@@ -33,8 +33,9 @@ class Creative(models.Model):
     blocking = models.NullBooleanField(null=True, blank=True)
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
-    markup_with_macros = models.TextField(blank=True)
-    markup_without_blocking = models.TextField(blank=True)
+    markup_with_macros = models.TextField(null=True, blank=True)
+    markup_with_macros_replaced = models.TextField(null=True, blank=True)
+    markup_without_blocking = models.TextField(null=True, blank=True)
     screenshot = models.ImageField(upload_to='screenshots', height_field=None, width_field=None, max_length=100,
                                    blank=True)
     screenshot_url = models.URLField(blank=True)
@@ -134,11 +135,21 @@ class Creative(models.Model):
             return self.markup
 
     def remove_blocking(self):
+
+        # make sure macros are included if they have been added
+        
+        if self.markup_with_macros:
+            markup = self.markup_with_macros
+            log.info('Removing blocking from mark up with macros')
+        else:
+            markup = self.markup
+            log.info('Removing blocking from markup')
+        
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
                 search = re.search(
                     r'((<script type="text/adtag">\n)(.*<\/ns>)(.*))',
-                    self.markup, re.DOTALL)
+                    markup, re.DOTALL)
 
                 tag_with_no_blocking = search.group(3)
 
@@ -147,7 +158,7 @@ class Creative(models.Model):
             elif self.adserver == 'dcm legacy':
                 search = re.search(
                     r'(<script type=\"text/adtag\">\n)(.*</scr\+ipt>)(.*)',
-                    self.markup, re.DOTALL)
+                    markup, re.DOTALL)
 
                 tag_with_no_blocking = search.group(2)
 
@@ -156,7 +167,7 @@ class Creative(models.Model):
             elif self.adserver == 'sizmek':
                 search = re.search(
                     r'<script type="text/adtag">(.*)<script language="javascript".*',
-                    self.markup, re.DOTALL)
+                    markup, re.DOTALL)
                 tag_with_no_blocking = search.group(1)
 
         elif self.blocking_vendor == 'ias':
@@ -166,7 +177,7 @@ class Creative(models.Model):
             # It will be the same regardless of tag type
             # A tag will never have blocking and monitoring
 
-            monitoring = re.search(r'pixel\.adsafeprotected', self.markup)
+            monitoring = re.search(r'pixel\.adsafeprotected', markup)
 
             if monitoring is not None:
                 script_regex = re.compile(
@@ -175,7 +186,7 @@ class Creative(models.Model):
                     r'(?:.*skeleton.gif" BORDER=0 WIDTH=1 HEIGHT=1 ALT=""></NOSCRIPT>)*'
                     , re.DOTALL)
 
-                tag_with_no_blocking = re.sub(script_regex, r'', self.markup)
+                tag_with_no_blocking = re.sub(script_regex, r'', markup)
 
             elif self.adserver == 'dcm ins':
 
@@ -185,7 +196,7 @@ class Creative(models.Model):
                         (.*)      # Remove
                         ''', re.VERBOSE)
 
-                    tag_with_no_blocking = re.sub(script_regex, r'\1', self.markup)
+                    tag_with_no_blocking = re.sub(script_regex, r'\1', markup)
 
                 else:
                     script_regex = re.compile(r'''
@@ -196,7 +207,7 @@ class Creative(models.Model):
                         (/dcm/dcmads\.js)                     # Use
                         ''', re.VERBOSE)
 
-                    tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
+                    tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', markup)
 
             elif self.adserver == 'dcm legacy':
                 script_regex = re.compile(r'''
@@ -206,7 +217,7 @@ class Creative(models.Model):
                     (.*)                                  # Use
                     ''', re.VERBOSE)
 
-                tag_with_no_blocking = re.sub(script_regex, r'\1ad.doubleclick.net/\4', self.markup)
+                tag_with_no_blocking = re.sub(script_regex, r'\1ad.doubleclick.net/\4', markup)
 
             elif self.adserver == 'sizmek':
                 script_regex = re.compile(r'''
@@ -220,7 +231,7 @@ class Creative(models.Model):
                     
                     ''', re.VERBOSE)
 
-                tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', self.markup)
+                tag_with_no_blocking = re.sub(script_regex, r'\1\3\5', markup)
 
             elif self.adserver == 'flashtalking':
                 pass
@@ -351,7 +362,7 @@ class Creative(models.Model):
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
-        html_doc = self.use_correct_markup()
+        html_doc = self.markup_with_macros_replaced()
 
         try:
             browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
@@ -483,4 +494,19 @@ class Creative(models.Model):
 
         self.markup_with_macros = markup
         self.save()
+
+    def replace_macros(self):
+
+        # This will either use the markup or the mark up without blocking and replace
+        # The encoded click tracker with an actual click tracker
+        # No other macros are replaced right now
+        # As this is for click validation
+
+        markup = self.use_correct_markup()
+
+        click_tracker = 'https://rtb.adentifi.com/Clicks?crId=163837;sId=159128;lId=29432;cId=2603;adExchange=Nexage;action=click;adId=607d29cf-d58a-11ea-87d7-12a1a22bbcf8;adThdId=;engineId=i-025e141792472342b;dIp=MTIuMTc1LjE3MS4xNA;site=NjA3ZDI5YzktZDU4YS0xMWVhLTg3ZDctMTJhMWEyMmJiY2Y4;adThdIdCode=INVALID;dealId=0;geoId=55202;inventoryId=607d29cc-d58a-11ea-87d7-12a1a22bbcf8;rtdmIndicator=0;redir='
+
+        self.markup_with_macros_replaced = markup.replace('[ENCODEDCLICKURL]', click_tracker)
+        self.save()
+
 

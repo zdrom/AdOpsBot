@@ -112,6 +112,8 @@ def router(request_data, user_name):
         creative.clean_up()
         creative.determine_adserver()
         creative.has_blocking()
+        # Adding the macros here means that they will present in all versions of the markup
+        creative.add_macros()
 
         if creative.blocking:
             creative.remove_blocking()
@@ -295,6 +297,8 @@ def reply_with_click_through(text, user, response_url):
     if creative.has_blocking():
         creative.remove_blocking()
 
+    creative.replace_macros()
+
     creative.validate_click_through()
 
     creative.save()
@@ -358,12 +362,9 @@ def process_for_ad_ops(creative_group_id, channel):
 
         creative.get_placement_id()
         creative.get_dimensions()
-        creative.add_macros()
 
         creative.take_screenshot()
-
-        # creative.validate_click_through()
-
+        creative.replace_macros()
 
         ''' 
         Save_image returns the creative name if there is an error
