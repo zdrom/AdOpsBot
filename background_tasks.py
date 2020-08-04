@@ -452,7 +452,7 @@ def process_for_ad_ops(creative_group_id, channel):
 
         # DISPLAY SHEET
         display_name = display.cell(row=row, column=1)
-        display_name.value = creative.name
+        display_name.value = f'{creative.width}x{creative.height}||{creative.placement_id}'
         display_name.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
         display_ad_format = display.cell(row=row, column=2)

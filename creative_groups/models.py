@@ -36,7 +36,7 @@ class CreativeGroup(models.Model):
 
     def validate_click_through(self):
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
@@ -93,7 +93,7 @@ class CreativeGroup(models.Model):
 
                 log.info(f'{creative.name} click through: {creative.click_through}')
 
-            except NoSuchElementException:
+            except Exception:
                 log.info(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Invalid'
 
