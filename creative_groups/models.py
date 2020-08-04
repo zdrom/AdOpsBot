@@ -98,6 +98,7 @@ class CreativeGroup(models.Model):
 
                 log.info(f'{creative.name} click through: {creative.click_through}')
 
+                browser.close()
                 browser.switch_to.window(browser.window_handles[-1])
 
             except (NoSuchElementException, WebDriverException) as e:
@@ -105,6 +106,6 @@ class CreativeGroup(models.Model):
                 creative.click_through = 'Invalid'
 
             creative.save()
-            browser.close()
+
 
         browser.quit()
