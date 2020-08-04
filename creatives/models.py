@@ -140,9 +140,12 @@ class Creative(models.Model):
         if self.markup_with_macros:
             markup = self.markup_with_macros
             log.info('Removing blocking from mark up with macros')
+            print('mark up with macros')
         else:
             markup = self.markup
             log.info('Removing blocking from markup')
+            print('mark up without macros')
+            print(markup)
 
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
@@ -188,24 +191,15 @@ class Creative(models.Model):
                 tag_with_no_blocking = re.sub(script_regex, r'', markup)
 
             elif self.adserver == 'dcm ins':
+                print('now im here')
+                script_regex = re.compile(r'''
+                    (https://)  # Use
+                    (fw\.adsafeprotected\.com/rjss/)      # Remove
+                    (www\.googletagservices\.com)         # Use
+                    (/[0-9]*/[0-9]*)                      # Remove
+                    ''', re.VERBOSE)
 
-                if monitoring is not None:
-                    script_regex = re.compile(r'''
-                        (.*</ins>)  # Use
-                        (.*)      # Remove
-                        ''', re.VERBOSE)
-
-                    tag_with_no_blocking = re.sub(script_regex, r'\1', markup)
-
-                else:
-                    script_regex = re.compile(r'''
-                        (https://)  # Use
-                        (fw\.adsafeprotected\.com/rjss/)      # Remove
-                        (www\.googletagservices\.com)         # Use
-                        (/[0-9]*/[0-9]*)                      # Remove
-                        ''', re.VERBOSE)
-
-                    tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
+                tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
 
             elif self.adserver == 'dcm legacy':
                 script_regex = re.compile(r'''
@@ -241,7 +235,7 @@ class Creative(models.Model):
 
                     ''', re.VERBOSE)
 
-            tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
+                tag_with_no_blocking = re.sub(script_regex, r'\1\3', markup)
 
         self.markup_without_blocking = tag_with_no_blocking
         self.save()
