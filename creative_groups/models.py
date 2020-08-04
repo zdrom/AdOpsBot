@@ -81,7 +81,7 @@ class CreativeGroup(models.Model):
                     browser.switch_to.window(browser.window_handles[1])
                 except IndexError:
                     log.exception(f'{creative.name} has an invalid click through')
-                    creative.click_through = 'Invalid'
+                    creative.click_through = 'Unable to determine'
                     creative.save()
                     continue
 
@@ -106,7 +106,8 @@ class CreativeGroup(models.Model):
 
             except (NoSuchElementException, WebDriverException) as e:
                 log.exception(f'{creative.name} has an invalid click through')
-                creative.click_through = 'Invalid'
+                creative.click_through = 'Unable to determine'
+                creative.save()
 
 
 
