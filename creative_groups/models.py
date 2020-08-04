@@ -80,8 +80,10 @@ class CreativeGroup(models.Model):
                 try:
                     browser.switch_to.window(browser.window_handles[1])
                 except IndexError:
-                    log.error(f'{creative.name} has an invalid click through')
+                    log.exception(f'{creative.name} has an invalid click through')
                     creative.click_through = 'Invalid'
+                    creative.save()
+                    continue
 
                 '''
                 Primarily for sizmek but this makes sure that an actual url is captured
@@ -97,15 +99,16 @@ class CreativeGroup(models.Model):
                 creative.click_through = browser.current_url
 
                 log.info(f'{creative.name} click through: {creative.click_through}')
+                creative.save()
 
                 browser.close()
                 browser.switch_to.window(browser.window_handles[-1])
 
             except (NoSuchElementException, WebDriverException) as e:
-                log.error(f'{creative.name} has an invalid click through')
+                log.exception(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Invalid'
 
-            creative.save()
+
 
 
         browser.quit()
