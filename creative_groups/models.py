@@ -93,12 +93,13 @@ class CreativeGroup(models.Model):
 
                 log.info(f'{creative.name} click through: {creative.click_through}')
 
-            except WebDriverException:
-                log.info(f'{creative.name} has an invalid click through')
+                browser.switch_to.window(browser.window_handles[-1])
+
+            except:
+                log.error(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Invalid'
 
             creative.save()
             browser.close()
-            browser.switch_to.window(browser.window_handles[-1])
 
         browser.quit()
