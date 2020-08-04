@@ -95,7 +95,7 @@ class CreativeGroup(models.Model):
 
                 browser.switch_to.window(browser.window_handles[-1])
 
-            except:
+            except (NoSuchElementException, WebDriverException) as e:
                 log.error(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Invalid'
 
