@@ -76,7 +76,12 @@ class CreativeGroup(models.Model):
                 el.click()
 
                 # switch to the newly opened tab
-                browser.switch_to.window(browser.window_handles[1])
+
+                try:
+                    browser.switch_to.window(browser.window_handles[1])
+                except IndexError:
+                    log.error(f'{creative.name} has an invalid click through')
+                    creative.click_through = 'Invalid'
 
                 '''
                 Primarily for sizmek but this makes sure that an actual url is captured
