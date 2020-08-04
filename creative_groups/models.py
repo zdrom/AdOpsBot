@@ -20,7 +20,7 @@ from django.http import FileResponse
 from io import StringIO, BytesIO
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -93,7 +93,7 @@ class CreativeGroup(models.Model):
 
                 log.info(f'{creative.name} click through: {creative.click_through}')
 
-            except Exception:
+            except WebDriverException:
                 log.info(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Invalid'
 
