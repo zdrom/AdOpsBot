@@ -421,7 +421,7 @@ def process_for_ad_ops(creative_group_id, channel):
 
     for creative in creative_group.creative_set.all():
 
-        if creative.name == '':
+        if creative.name is None:
             cname = f'{creative.width}x{creative.height}'
         else:
             cname = creative.name
