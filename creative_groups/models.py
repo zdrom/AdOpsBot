@@ -51,7 +51,7 @@ class CreativeGroup(models.Model):
             try:
                 browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
-                if creative.adserver == 'dcm ins'
+                if creative.adserver == 'dcm ins':
                     el = browser.find_element_by_tag_name('ins')
                 elif creative.adserver == 'dcm legacy':
                     el = browser.find_element_by_tag_name('a')
