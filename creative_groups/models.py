@@ -51,9 +51,11 @@ class CreativeGroup(models.Model):
             try:
                 browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
-                if creative.adserver == 'dcm ins' or creative.adserver == 'dcm legacy':
+                if creative.adserver == 'dcm ins'
+                    el = browser.find_element_by_tag_name('ins')
+                elif creative.adserver == 'dcm legacy':
                     el = browser.find_element_by_tag_name('a')
-                if creative.adserver == 'sizmek':
+                elif creative.adserver == 'sizmek':
                     imgs = browser.find_elements_by_tag_name('img')
                     # in case there are any 1x1s
                     # find the image that has dimensions greater than 1x1
@@ -62,7 +64,7 @@ class CreativeGroup(models.Model):
                         if int(img.get_attribute('width')) > 1:
                             el = img
                             break
-                if creative.adserver == 'flashtalking':
+                elif creative.adserver == 'flashtalking':
                     # served in an iframe
                     browser.switch_to.frame(0)
                     # in case there are any 1x1s

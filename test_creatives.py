@@ -440,7 +440,7 @@ class TestCreativeCreation(django.test.TestCase):
                              <script src="https://bs.serving-sys.com/BurstingPipe/adServer.bs?cn=rsb&c=28&pli=28887076&PluID=0&w=300&h=250&ucm=true&ncu=$$[ENCODEDCLICKURL]/images/invisible.gif$$&ord=[timestamp]&ucm=true"></scr+ipt><noscript><a href="[CLICKURL]https://bs.serving-sys.com/BurstingPipe/adServer.bs?cn=brd&FlightID=28887076&Page=&PluID=0&Pos=1120116384" target="_blank"><img src="https://bs.serving-sys.com/BurstingPipe/adServer.bs?cn=bsr&FlightID=28887076&Page=&PluID=0&Pos=1120116384" border=0 width=300 height=250></a></noscript>
                              </script>
                              ''')
-        self.assertTrue(dcm_ins_dv_blocking.remove_blocking(),
+        self.assertHTMLEqual(dcm_ins_dv_blocking.remove_blocking(),
                         '''
                         <ins class='dcmads' style='display:inline-block;width:728px;height:90px'
                             data-dcm-placement='N30602.1172840ADTHEORENTINC1/B23952138.275863207'

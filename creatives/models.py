@@ -149,11 +149,9 @@ class Creative(models.Model):
 
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
-                search = re.search(
-                    r'((<script type="text/adtag">\n)(.*<\/ns>)(.*))',
-                    markup, re.DOTALL)
+                tag = re.compile(r'(<script type="text/adtag">\n)(.*<\/ins>)(.*)', re.DOTALL)
 
-                tag_with_no_blocking = search.group(3)
+                tag_with_no_blocking = re.sub(tag, r'\2', markup)
 
                 tag_with_no_blocking = tag_with_no_blocking.replace('</scr+ipt>', '</script>')
 
