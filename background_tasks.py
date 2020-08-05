@@ -420,6 +420,12 @@ def process_for_ad_ops(creative_group_id, channel):
     row = 2
 
     for creative in creative_group.creative_set.all():
+
+        if creative.name == '':
+            cname = f'{creative.width}x{creative.height}'
+        else:
+            cname = creative.name
+
         log.info(creative.screenshot.path)
         img = Image(creative.screenshot.path)
 
@@ -435,7 +441,7 @@ def process_for_ad_ops(creative_group_id, channel):
         review.row_dimensions[row].height = row_height
 
         name = review.cell(row=row, column=1)
-        name.value = creative.name
+        name.value = cname
         name.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
         placement_id = review.cell(row=row, column=2)
@@ -452,7 +458,7 @@ def process_for_ad_ops(creative_group_id, channel):
 
         # DISPLAY SHEET
         display_name = display.cell(row=row, column=1)
-        display_name.value = f'{creative.width}x{creative.height}||{creative.placement_id}'
+        display_name.value = cname
         display_name.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
 
         display_ad_format = display.cell(row=row, column=2)
