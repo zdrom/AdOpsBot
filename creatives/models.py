@@ -23,7 +23,7 @@ log = logging.getLogger("django")
 
 
 class Creative(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, blank=True, null=True)
     requested_by = models.CharField(max_length=100, blank=True)
     adserver = models.CharField(max_length=30, blank=True)
     width = models.IntegerField(blank=True, null=True)
@@ -44,7 +44,7 @@ class Creative(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return str(self.name)
 
     def clean_up(self):
         # Remove Potential formatting that slack adds

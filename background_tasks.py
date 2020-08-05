@@ -92,7 +92,7 @@ def router(request_data, user_name):
 
         try:
 
-            if columns[0] is None or columns[1] is None:  # For blank rows that accidentally get captured as non blank
+            if columns[1] is None:  # For blank rows that accidentally get captured as non blank
                 log.info('Blank row incorrectly categorized as non-blank -- Skipping')
                 continue
 
