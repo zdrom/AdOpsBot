@@ -111,7 +111,4 @@ class CreativeGroup(models.Model):
                 creative.click_through = 'Unable to determine'
                 creative.save()
 
-
-
-
         browser.quit()

@@ -182,3 +182,6 @@ LOGGING = {
     },
 }
 
+# Background tasks
+BACKGROUND_TASK_RUN_ASYNC = True
+MAX_ATTEMPTS = 3
