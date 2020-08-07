@@ -55,7 +55,10 @@ class Creative(models.Model):
         self.markup = self.markup.replace('‘', "'")
         self.markup = self.markup.replace('“', '"')
         self.markup = self.markup.replace('”', '"')
+        # Flashtalking nonsense
         self.markup = self.markup.replace('_x000D_', '')
+        # Make sure secure
+        self.markup = self.markup.replace('http:', 'https:')
         self.save()
 
     def determine_adserver(self):
