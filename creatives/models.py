@@ -211,7 +211,7 @@ class Creative(models.Model):
 
             elif self.adserver == 'sizmek':
                 script_regex = re.compile(r'''
-                    (.*https://)                          # Use
+                    (.*https?://)                          # Use
                     (fw\.adsafeprotected\.com/rjss/)      # Remove
                     (.*/)                                 # Use
                     ([0-9]*/[0-9]*/)                      # Remove

@@ -342,7 +342,7 @@ def progress(current_creative, max_creatives):
     return progress_display
 
 
-@background(schedule=1)
+@background(schedule=1, q)
 def process_for_ad_ops(creative_group_id, channel):
     creative_group = CreativeGroup.objects.get(pk=creative_group_id)
 
