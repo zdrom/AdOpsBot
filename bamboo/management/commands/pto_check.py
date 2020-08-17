@@ -18,6 +18,9 @@ class Command(BaseCommand):
         key = config('BAMBOO')
         today = date.today()
 
+        if today.weekday() == 5 or today.weekday() == 6:  # If it is a weekend so don't check for PTO
+            return
+
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={today}'
 
         r = requests.get(url=url)
