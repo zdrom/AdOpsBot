@@ -42,7 +42,7 @@ class CreativeGroup(models.Model):
         slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
         chrome_options = webdriver.ChromeOptions()
-        # chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
