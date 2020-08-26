@@ -18,6 +18,10 @@ import logging
 log = logging.getLogger("django")
 
 
+def home(request):
+    return HttpResponse(status=200, content=':)')
+
+
 @csrf_exempt
 def bot(request):
 
