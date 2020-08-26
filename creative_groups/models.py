@@ -14,6 +14,7 @@ from PIL import Image, UnidentifiedImageError
 from decouple import config
 from django.conf import settings
 from django.core.files.storage import default_storage, Storage
+from django.core.files.temp import NamedTemporaryFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.http import FileResponse
@@ -23,6 +24,8 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+from slack import WebClient
 
 log = logging.getLogger("django")
 
@@ -34,23 +37,47 @@ class CreativeGroup(models.Model):
     def __str__(self):
         return self.name
 
-    def validate_click_through(self):
+    def click_and_pic(self, channel, progress_meter):
+
+        slack_client = WebClient(config('SLACK_BOT_TOKEN'))
+
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
         creatives = self.creative_set.all()
 
+        p = 0  # progress meter counter
+
         for creative in creatives:
+
+            p += 1
 
             html_doc = creative.use_correct_markup()
 
             log.info(f'Mark Up with macros replaced: {creative.markup_with_macros_replaced}')
 
-            try:
-                browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
+            browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
+            # Wait for the creative to render
+            browser.implicitly_wait(1.5)
+
+            '''
+            Save the screenshot
+            Crop the image 
+            there is an 8x8 border on the top and left so crop include that in the crop
+            move from temp file to default storage
+            '''
+            temp = NamedTemporaryFile(prefix='screenshot', suffix='.png')
+            browser.save_screenshot(temp.name)
+            im = Image.open(temp)
+            cropped_dimensions = (8, 8, int(creative.width) + 8, int(creative.height) + 8)
+            cropped = im.crop(cropped_dimensions)
+            cropped.save(temp.name)
+            creative.screenshot = default_storage.save('screenshots/screenshot.png', temp)
+
+            try:
                 if creative.adserver == 'dcm ins':
                     el = browser.find_element_by_tag_name('ins')
                 elif creative.adserver == 'dcm legacy':
@@ -81,10 +108,11 @@ class CreativeGroup(models.Model):
 
                 try:
                     browser.switch_to.window(browser.window_handles[1])
-                except IndexError:
+                except:
                     log.exception(f'{creative.name} has an invalid click through')
                     creative.click_through = 'Unable to determine'
                     creative.save()
+                    slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=f'{ p } out of { creatives.count() } complete')
                     continue
 
                 '''
@@ -106,9 +134,14 @@ class CreativeGroup(models.Model):
                 browser.close()
                 browser.switch_to.window(browser.window_handles[-1])
 
+                slack_client.chat_update(channel=channel, ts=progress_meter['ts'],
+                                         text=f'{p} out of {creatives.count()} complete')
+
             except (NoSuchElementException, WebDriverException) as e:
                 log.exception(f'{creative.name} has an invalid click through')
                 creative.click_through = 'Unable to determine'
                 creative.save()
+                slack_client.chat_update(channel=channel, ts=progress_meter['ts'],
+                                         text=f'{p} out of {creatives.count()} complete')
 
         browser.quit()

@@ -1,24 +1,18 @@
-import ast
 import hashlib
 import hmac
 import json
-import pprint
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 
-import requests
 from decouple import config
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from openpyxl import load_workbook
 
-from selenium.common.exceptions import NoSuchElementException
-from slack import WebClient
+from slack import WebClient, errors
+from slackeventsapi import SlackEventAdapter
 
 from background_tasks import reply_with_preview, reply_with_stats, reply_with_template, reply_with_instructions, \
     router, reply_with_click_through
-from .models import Creative
-from creative_groups.models import CreativeGroup
 import logging
 
 log = logging.getLogger("django")
@@ -26,78 +20,103 @@ log = logging.getLogger("django")
 
 @csrf_exempt
 def bot(request):
-    slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
-    slack_data = json.loads(request.body)
+    try:
 
-    if slack_data.get('token') != config('SLACK_VERIFICATION_TOKEN'):
-        return HttpResponse(status=403)
+        print(f'''
+        headers: {request.headers}
+        __________
+        body: {request.body}
+        __________
+        __________
+        ''')
 
-    if slack_data.get('type') == 'url_verification':
-        return HttpResponse(content=slack_data['challenge'],
-                            status=200)
+        slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
-    event_type = slack_data['event']['type']
+        slack_data = json.loads(request.body)
 
-    if event_type == 'message':
+        if slack_data.get('token') != config('SLACK_VERIFICATION_TOKEN'):
+            print('forbidden')
+            return HttpResponse(status=403)
+
+        if slack_data.get('type') == 'url_verification':
+            print('url verification')
+            return HttpResponse(content=slack_data['challenge'],
+                                status=200)
 
         event = slack_data['event']
-        event_channel = slack_data['event']['channel']
-        message_text = event.get('text')
 
-        # ignore bot's own message
-        if event.get('bot_id') or message_text == '' or message_text is None:
-
+        if event.get('subtype') == 'message_changed' or event.get('subtype') == 'message_deleted':  # Filter out an message changes
             return HttpResponse(status=200)
 
-        elif 'stats' in message_text.lower():
+        ''' 
+        if the event is message
+        the user id is passed as user
+        if it's a file shared
+        the user id is passed as user_id
+        get the name of the user and filter out any messages from adops
+        so i'm not responding to bot messages
+        '''
 
-            # background task
-            reply_with_stats(event_channel)
+        try:
+            if slack_data['event']['type'] == 'message':
+                user_id = slack_data['event']['user']
+            else:
+                user_id = slack_data['event']['user_id']
+        except KeyError:
+            logging.exception(slack_data)
 
-            return HttpResponse(status=200)
-
-        elif 'template' in message_text.lower():
-
-            # background task
-            reply_with_template(event_channel)
-
-            return HttpResponse(status=200)
-
-        else:
-
-            # background task
-            reply_with_instructions(event_channel)
-
-            return HttpResponse(status=200)
-
-    elif event_type == 'file_shared':
-
-        # If a bot shared file, return 200 OK
-        user_id = slack_data['event']['user_id']
         user = slack_client.users_info(user=user_id)
         user_name = user.get('user').get('real_name')
 
-        if user['user']['is_bot']:
-            return HttpResponse(status=200)
+        if user_name != 'adops':
 
-        router(slack_data, user_name)
+            print('Passed All Tests')
+
+            event_type = event['type']
+
+            if event_type == 'message':
+
+                event_channel = slack_data['event']['channel']
+                message_text = event.get('text')
+
+                if message_text.lower() == '':
+                    print('Returning due to blank message')
+                    return HttpResponse(status=200)
+
+                if 'stats' in message_text.lower():
+
+                    # background task
+                    reply_with_stats(event_channel)
+
+                elif 'template' in message_text.lower():
+
+                    # background task
+                    reply_with_template(event_channel)
+
+                else:
+
+                    # background task
+                    reply_with_instructions(event_channel)
+
+            elif event_type == 'file_shared':
+                router(slack_data, user_name)
+
+        else:
+            print('Classified as a bot message')
+
+        return HttpResponse(status=200, content='Confirming Receipt')
+
+    except Exception as e:
+        log.exception('There was an exception')
+        print(f'''
+        The Request Header is:
+        {request.headers}
+        And the Body is:
+        {request.body}
+        ''')
 
         return HttpResponse(status=200)
-
-    else:
-
-        pprint.pprint(f'''
-
-                    Neither Message nor File Shared
-
-                    f'{request.headers}
-
-                    f'{slack_data}
-
-                ''')
-
-    return HttpResponse(status=200)
 
 
 @csrf_exempt

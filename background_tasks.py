@@ -11,6 +11,7 @@ from zipfile import ZipFile, BadZipFile
 import requests
 from decouple import config
 from django.core.files.storage import default_storage
+from django.http import HttpResponse
 from django.utils import timezone
 from openpyxl import load_workbook, Workbook
 from openpyxl.drawing.image import Image
@@ -63,7 +64,7 @@ def reply_with_template(channel):
 
 @background(schedule=1)
 def router(request_data, user_name):
-    # A function that chooses the correct function depending on the value of A1 in the spreadsheet
+    # A function that chooses the correct function depending on the value of B2 in the spreadsheet
 
     file_info = slack_client.files_info(file=request_data['event']['file_id'])
     file_url = file_info['file']['url_private']
@@ -74,26 +75,29 @@ def router(request_data, user_name):
     r = requests.get(file_url, headers={'Authorization': 'Bearer %s' % config('SLACK_BOT_TOKEN')})
     r.raise_for_status
 
-    uploaded = default_storage.save(f'uploaded_spreadsheets/{datetime.datetime.now().timestamp()}.xlsx', BytesIO(r.content))
+    uploaded = default_storage.save(f'uploaded_spreadsheets/upload.xlsx', BytesIO(r.content))
 
-    wb = load_workbook(filename=default_storage.path(uploaded))
+    try:
+        wb = load_workbook(filename=default_storage.path(uploaded), read_only=True)
 
-    ws = wb.active
+        ws = wb.active
 
-    if ws['B1'].value is None:
-        campaign_name = 'campaign'
-    else:
-        campaign_name = ws['B1'].value
+        if ws.title != 'AdOps Bot Template':  # don't try to process a spreadsheet that is not the template
+            log.warning('Determined file was not the template')
+            return HttpResponse(status=500, content='Not the correct template')
 
-    creative_group = CreativeGroup(name=campaign_name)
-    creative_group.save()
+        if ws['B3'].value is None:
+            campaign_name = 'campaign'
+        else:
+            campaign_name = ws['B3'].value
 
-    for columns in ws.iter_rows(4, ws.max_row, 0, ws.max_column, True):
+        creative_group = CreativeGroup(name=campaign_name)
+        creative_group.save()
 
-        try:
+        for columns in ws.iter_rows(6, ws.max_row, 0, ws.max_column, True):
 
             if columns[1] is None:  # For blank rows that accidentally get captured as non blank
-                log.info('Blank row incorrectly categorized as non-blank -- Skipping')
+                log.warning('Blank row incorrectly categorized as non-blank -- Skipping')
                 continue
 
             creative = Creative(name=columns[0], markup=columns[1], creative_group_id=creative_group,
@@ -102,28 +106,21 @@ def router(request_data, user_name):
 
             log.info(f'successfully Created: {creative.name}')
 
-        except IntegrityError:
+            creative.clean_up()
+            creative.determine_adserver()
+            creative.has_blocking()
+            # Adding the macros here means that they will present in all versions of the markup
+            creative.add_macros()
 
-            log.exception(f'Error Saving Creative: {creative.name}')
-            slack_client.chat_postMessage(channel='DSNPWMH88',
-                                          text=f"User: {user_name} || "
-                                               f"Error: Could not save creative {creative.name}")
+            if creative.blocking:
+                creative.remove_blocking()
 
-        creative.clean_up()
-        creative.determine_adserver()
-        creative.has_blocking()
-        # Adding the macros here means that they will present in all versions of the markup
-        creative.add_macros()
-
-        if creative.blocking:
-            creative.remove_blocking()
-
-    if ws['A1'].value == 'AdOps Template':
-        log.info('Processing for AdOps')
-        process_for_ad_ops(creative_group.pk, channel)
-    else:
-        log.info('Processing for Account Management')
-        reply_with_screenshots(creative_group.pk, channel)
+        if ws['B2'].value == 'AdOps':
+            process_for_ad_ops(creative_group.pk, channel)
+        elif ws['B2'].value == 'Client Services':
+            reply_with_screenshots(creative_group.pk, channel)
+    finally:
+        wb.close()
 
 
 @background(schedule=1)
@@ -346,37 +343,15 @@ def progress(current_creative, max_creatives):
 def process_for_ad_ops(creative_group_id, channel):
     creative_group = CreativeGroup.objects.get(pk=creative_group_id)
 
-    progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
-
-    errors = []
-
-    p = 1
+    progress_meter = slack_client.chat_postMessage(channel=channel, text=f'0 out of {creative_group.creative_set.count()} complete')
 
     for creative in creative_group.creative_set.all():
-
-        # Start the progress meter
-        meter = progress(p, len(creative_group.creative_set.all()))
-        slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=meter)
-        p += 1
-        # End the progress meter
-
         creative.get_placement_id()
         creative.get_dimensions()
 
-        creative.take_screenshot()
         creative.replace_macros()
 
-        ''' 
-        Save_image returns the creative name if there is an error
-        push the creative name to an list to return to the user if there are errors
-        '''
-
-        creative_name = creative.save_image()
-
-        if creative_name is not None:
-            errors.append(creative_name)
-
-    creative_group.validate_click_through()
+    creative_group.click_and_pic(channel=channel, progress_meter=progress_meter)
 
     out = Workbook()
 
@@ -426,7 +401,6 @@ def process_for_ad_ops(creative_group_id, channel):
         else:
             cname = creative.name
 
-        log.info(creative.screenshot.path)
         img = Image(creative.screenshot.path)
 
         review.add_image(img, f'E{row}')

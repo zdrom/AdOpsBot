@@ -143,7 +143,6 @@ class Creative(models.Model):
         if self.markup_with_macros:
             markup = self.markup_with_macros
             log.info('Removing blocking from mark up with macros')
-            print('mark up with macros')
         else:
             markup = self.markup
             log.info('Removing blocking from markup')
@@ -192,7 +191,6 @@ class Creative(models.Model):
                 tag_with_no_blocking = re.sub(script_regex, r'', markup)
 
             elif self.adserver == 'dcm ins':
-                print('now im here')
                 script_regex = re.compile(r'''
                     (https://)  # Use
                     (fw\.adsafeprotected\.com/rjss/)      # Remove
