@@ -152,3 +152,4 @@ dmypy.json
 /huey.db-wal
 /huey.db-shm
 /creatives/.DS_Store
+/logs

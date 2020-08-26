@@ -73,6 +73,7 @@ class CreativeGroup(models.Model):
             browser.save_screenshot(temp.name)
             im = Image.open(temp)
             cropped_dimensions = (8, 8, int(creative.width) + 8, int(creative.height) + 8)
+            log.warning(f'The cropped dimensions are {cropped_dimensions}')
             cropped = im.crop(cropped_dimensions)
             cropped.save(temp.name)
             creative.screenshot = default_storage.save('screenshots/screenshot.png', temp)
