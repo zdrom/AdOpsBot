@@ -325,8 +325,11 @@ class Creative(models.Model):
             cropped_dimensions = (8, 8, int(self.width) + 8, int(self.height) + 8)
             log.warning(f'The cropped dimensions are {cropped_dimensions}')
             cropped = im.crop(cropped_dimensions)
-            cropped.save(temp.name)
-            self.screenshot = default_storage.save('screenshots/screenshot.png', temp)
+
+            temp_out = NamedTemporaryFile(prefix='screenshot_out', suffix='.png')
+            cropped.save(temp_out.name)
+
+            self.screenshot = default_storage.save('screenshots/screenshot.png', temp_out)
             self.save()
 
         finally:
