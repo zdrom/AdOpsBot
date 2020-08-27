@@ -300,7 +300,7 @@ class Creative(models.Model):
     def take_screenshot(self):
 
         chrome_options = webdriver.ChromeOptions()
-        # chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         browser = webdriver.Chrome(options=chrome_options)
 
