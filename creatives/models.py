@@ -3,7 +3,9 @@
 
 import re
 import logging
+from tempfile import NamedTemporaryFile
 
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 
@@ -142,12 +144,8 @@ class Creative(models.Model):
 
         if self.markup_with_macros:
             markup = self.markup_with_macros
-            log.info('Removing blocking from mark up with macros')
         else:
             markup = self.markup
-            log.info('Removing blocking from markup')
-            print('mark up without macros')
-            print(markup)
 
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
@@ -301,25 +299,38 @@ class Creative(models.Model):
 
     def take_screenshot(self):
 
-        # Uses the HCTI API to take a screenshot of the ad tag code provided
+        chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        browser = webdriver.Chrome(options=chrome_options)
 
-        hcti_api_endpoint = "https://hcti.io/v1/image"
-        hcti_api_user_id = config('hcti_api_user_id')
-        hcti_api_key = config('hcti_api_key')
+        html_doc = self.use_correct_markup()
 
-        data = {
-            'html': self.use_correct_markup(),
-            'device_scale': 1,
-            'ms_delay': 3000
-        }
+        try:
+            browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
-        image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))
+            # Wait for the creative to render
+            browser.implicitly_wait(3)
 
-        self.screenshot_url = image.json()['url']
-        self.save()
+            '''
+            Save the screenshot
+            Crop the image 
+            there is an 8x8 border on the top and left so crop include that in the crop
+            move from temp file to default storage
+            '''
 
-        log.info(f'Successfully took screenshot for {self.name}')
-        log.info(self.screenshot_url)
+            temp = NamedTemporaryFile(prefix='screenshot', suffix='.png')
+            browser.save_screenshot(temp.name)
+            im = Image.open(temp)
+            cropped_dimensions = (8, 8, int(self.width) + 8, int(self.height) + 8)
+            log.warning(f'The cropped dimensions are {cropped_dimensions}')
+            cropped = im.crop(cropped_dimensions)
+            cropped.save(temp.name)
+            self.screenshot = default_storage.save('screenshots/screenshot.png', temp)
+            self.save()
+
+        finally:
+            browser.close()
 
     def save_image(self):
 

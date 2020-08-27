@@ -22,6 +22,7 @@ def home(request):
     return HttpResponse(status=200, content=':)')
 
 
+# noinspection PyBroadException
 @csrf_exempt
 def bot(request):
 
@@ -127,12 +128,14 @@ def bot(request):
 def preview(request):
     if request.POST:
         if request_valid(request):
+
             parsed = urlparse.urlparse(request.body.decode())
             text = parse_qs(parsed.path)['text'][0]
             user = parse_qs(parsed.path)['user_name'][0]
             response_url = parse_qs(parsed.path)['response_url'][0]
+            channel = parse_qs(parsed.path)['channel_id'][0]
 
-            reply_with_preview(text, user, response_url)
+            reply_with_preview(text, user, response_url, channel)
             return HttpResponse(status=200)
 
 

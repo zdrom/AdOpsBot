@@ -77,6 +77,7 @@ class CreativeGroup(models.Model):
             cropped = im.crop(cropped_dimensions)
             cropped.save(temp.name)
             creative.screenshot = default_storage.save('screenshots/screenshot.png', temp)
+            creative.save()
 
             try:
                 if creative.adserver == 'dcm ins':
