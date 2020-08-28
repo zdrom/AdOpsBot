@@ -142,7 +142,6 @@ def preview(request):
             return HttpResponse(status=200, content='Confirming receipt!')
 
 
-
 @csrf_exempt
 def get_click_through(request):
     if request.POST:
