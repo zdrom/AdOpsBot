@@ -136,7 +136,11 @@ def preview(request):
             channel = parse_qs(parsed.path)['channel_id'][0]
 
             reply_with_preview(text, user, response_url, channel)
+
+            print(request.body)
+
             return HttpResponse(status=200, content='Confirming receipt!')
+
 
 
 @csrf_exempt

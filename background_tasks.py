@@ -210,9 +210,11 @@ def reply_with_preview(text, user, response_url, channel):
         response_string = '*Here is the tag you sent me*'
         markup = creative.markup
 
-    slack_client.chat_postMessage(icon_emoji=':white_check_mark', channel=channel, text='*Here is a preview of the creative*')
-    slack_client.files_upload(file=creative.screenshot.path, channels=channel)
-    slack_client.chat_postMessage(channel=channel,
+    slack_client.chat_postMessage(icon_emoji=':white_check_mark', as_user='PreviewBot', channel=channel, text='*Here is a preview of the creative*')
+    slack_client.files_upload(icon_emoji=':frame_with_picture', as_user='PreviewBot', file=creative.screenshot.path, channels=channel)
+    slack_client.chat_postMessage(icon_emoji=':frame_with_picture',
+                                  as_user='PreviewBot',
+                                  channel=channel,
                                   text=f'''
                                         {response_string}
                                         ```{markup}```

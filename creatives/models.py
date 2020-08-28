@@ -298,15 +298,14 @@ class Creative(models.Model):
         self.save()
 
     def take_screenshot(self):
-
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--disable-gpu")
-        browser = webdriver.Chrome(options=chrome_options)
-
-        html_doc = self.use_correct_markup()
-
         try:
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            browser = webdriver.Chrome(options=chrome_options)
+
+            html_doc = self.use_correct_markup()
+
             browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
 
             # Wait for the creative to render
