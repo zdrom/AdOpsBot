@@ -1,30 +1,16 @@
 # A Creative Group is a collection of creatives
 
 import logging
-import os
-import random
-import tempfile
-import urllib
-from io import BytesIO
-from zipfile import ZipFile, BadZipFile
-import datetime
 
-import requests
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 from decouple import config
-from django.conf import settings
-from django.core.files.storage import default_storage, Storage
+from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
-from django.http import FileResponse
-from io import StringIO, BytesIO
-
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+from selenium.webdriver.support.ui import WebDriverWait
 from slack import WebClient
 
 log = logging.getLogger("django")
@@ -39,9 +25,8 @@ class CreativeGroup(models.Model):
 
     def click_and_pic(self, channel, progress_meter):
 
-<<<<<<< HEAD
         try:
-=======
+
         slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
         chrome_options = webdriver.ChromeOptions()
@@ -109,7 +94,6 @@ class CreativeGroup(models.Model):
                 el.click()
 
                 # switch to the newly opened tab
->>>>>>> parent of 2e8e393... Update to preview tool
 
             slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
@@ -189,7 +173,8 @@ class CreativeGroup(models.Model):
                         log.exception(f'{creative.name} has an invalid click through')
                         creative.click_through = 'Unable to determine'
                         creative.save()
-                        slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=f'{ p } out of { creatives.count() } complete')
+                        slack_client.chat_update(channel=channel, ts=progress_meter['ts'],
+                                                 text=f'{p} out of {creatives.count()} complete')
                         continue
 
                     '''
@@ -221,6 +206,7 @@ class CreativeGroup(models.Model):
                     slack_client.chat_update(channel=channel, ts=progress_meter['ts'],
                                              text=f'{p} out of {creatives.count()} complete')
         except:
-            slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])
-        finally:
-            browser.quit()
+        slack_client.chat_delete(channel=channel, ts=progress_meter['ts'])
+
+    finally:
+    browser.quit()
