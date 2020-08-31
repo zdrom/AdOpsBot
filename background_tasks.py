@@ -118,14 +118,44 @@ def router(request_data, user_name):
         if ws['B2'].value == 'AdOps':
             process_for_ad_ops(creative_group.pk, channel)
         elif ws['B2'].value == 'Client Services':
-            process_for_client_services(creative_group.pk, channel)
+            reply_with_screenshots(creative_group.pk, channel)
     finally:
         wb.close()
 
 
 @background(schedule=1)
-def process_for_client_services(creative_group_id, channel):
+def reply_with_screenshots(creative_group_id, channel):
     creative_group = CreativeGroup.objects.get(pk=creative_group_id)
+
+    log.info(f'Creative Group == {creative_group}')
+
+    progress_meter = slack_client.chat_postMessage(channel=channel, text='◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎◻︎')
+
+    errors = []
+
+    p = 1
+
+    log.info(f'Creative Group == {creative_group.creative_set.all()}')
+
+    for creative in creative_group.creative_set.all():
+
+        # Start the progress meter
+        meter = progress(p, len(creative_group.creative_set.all()))
+        slack_client.chat_update(channel=channel, ts=progress_meter['ts'], text=meter)
+        p += 1
+        # End the progress meter
+
+        creative.take_screenshot()
+
+        ''' 
+        Save_image returns the creative name if there is an error
+        push the creative name to an list to return to the user if there are errors
+        '''
+
+        creative_name = creative.save_image()
+
+        if creative_name is not None:
+            errors.append(creative_name)
 
     zip_path = f"{settings.MEDIA_ROOT}/zips/{urllib.parse.quote_plus(creative_group.name)}_{datetime.datetime.now().strftime('%m.%d.%H.%M')}.zip"
 
@@ -183,7 +213,7 @@ def reply_with_stats(channel):
 
 # Slash Commands
 @background(schedule=1)
-def reply_with_preview(text, user, response_url, channel):
+def reply_with_preview(text, user, response_url):
     log.info('Replying with preview')
     log.info(f'User: {user} & Response URL: {response_url}')
 
@@ -197,19 +227,18 @@ def reply_with_preview(text, user, response_url, channel):
     if creative.has_blocking():
         creative.remove_blocking()
 
-    creative.get_dimensions()
-
     creative.take_screenshot()
 
     creative.save()
 
-    if creative.blocking:
-        response_string = '*Here is the tag you sent me with blocking removed*'
+    if creative.has_blocking():
+        response_string = 'Here is the tag you sent me with blocking removed.'
         markup = creative.markup_without_blocking
     else:
-        response_string = '*Here is the tag you sent me*'
+        response_string = 'Here is the tag you sent me'
         markup = creative.markup
 
+<<<<<<< HEAD
     slack_client.chat_postMessage(icon_emoji=':white_check_mark', as_user='PreviewBot', channel=channel, text='*Here is a preview of the creative*')
     slack_client.files_upload(icon_emoji=':frame_with_picture', as_user='PreviewBot', file=creative.screenshot.path, channels=channel)
     slack_client.chat_postMessage(icon_emoji=':frame_with_picture',
@@ -220,6 +249,46 @@ def reply_with_preview(text, user, response_url, channel):
                                         ```{markup}```
                                         '''
                                   )
+=======
+    text = f'''
+            [
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": ":white_check_mark: {response_string}"
+                    }}
+                }},
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": {json.dumps(f'```{markup}```')}
+                    }}
+                }},
+                {{
+                    "type": "section",
+                    "text": {{
+                        "type": "mrkdwn",
+                        "text": ":mag: Below is a preview of the creative."
+                    }}
+                }},
+                {{
+                    "type": "image",
+                    "image_url": "{creative.screenshot_url}",
+                    "alt_text": "Ad Tag"
+                }},
+
+            ]
+            '''
+
+    post_data = {'blocks': text}
+    post = requests.post(url=response_url, json=post_data)
+
+    print(text)
+
+    print(post.text)
+>>>>>>> parent of 2e8e393... Update to preview tool
 
 
 # Slash Commands
@@ -264,11 +333,11 @@ def reply_with_click_through(text, user, response_url):
             '''
 
     post_data = {'blocks': text}
-    resp = requests.post(url=response_url, json=post_data)
+    post = requests.post(url=response_url, json=post_data)
 
     print(text)
 
-    resp(post.text)
+    print(post.text)
 
 
 # Helpers
@@ -287,8 +356,7 @@ def progress(current_creative, max_creatives):
 def process_for_ad_ops(creative_group_id, channel):
     creative_group = CreativeGroup.objects.get(pk=creative_group_id)
 
-    progress_meter = slack_client.chat_postMessage(channel=channel,
-                                                   text=f'0 out of {creative_group.creative_set.count()} complete')
+    progress_meter = slack_client.chat_postMessage(channel=channel, text=f'0 out of {creative_group.creative_set.count()} complete')
 
     for creative in creative_group.creative_set.all():
         creative.get_placement_id()

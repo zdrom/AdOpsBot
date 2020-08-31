@@ -3,9 +3,7 @@
 
 import re
 import logging
-from tempfile import NamedTemporaryFile
 
-from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 
@@ -144,8 +142,12 @@ class Creative(models.Model):
 
         if self.markup_with_macros:
             markup = self.markup_with_macros
+            log.info('Removing blocking from mark up with macros')
         else:
             markup = self.markup
+            log.info('Removing blocking from markup')
+            print('mark up without macros')
+            print(markup)
 
         if self.blocking_vendor == 'dv':
             if self.adserver == 'dcm ins':
@@ -304,20 +306,27 @@ class Creative(models.Model):
             chrome_options.add_argument("--disable-gpu")
             browser = webdriver.Chrome(options=chrome_options)
 
+<<<<<<< HEAD
             html_doc = self.use_correct_markup()
 
             browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
+=======
+        # Uses the HCTI API to take a screenshot of the ad tag code provided
 
-            # Wait for the creative to render
-            browser.implicitly_wait(3)
+        hcti_api_endpoint = "https://hcti.io/v1/image"
+        hcti_api_user_id = config('hcti_api_user_id')
+        hcti_api_key = config('hcti_api_key')
+>>>>>>> parent of 2e8e393... Update to preview tool
 
-            '''
-            Save the screenshot
-            Crop the image 
-            there is an 8x8 border on the top and left so crop include that in the crop
-            move from temp file to default storage
-            '''
+        data = {
+            'html': self.use_correct_markup(),
+            'device_scale': 1,
+            'ms_delay': 3000
+        }
 
+        image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))
+
+<<<<<<< HEAD
             temp = NamedTemporaryFile(prefix='screenshot', suffix='.png')
             browser.save_screenshot(temp.name)
             im = Image.open(temp)
@@ -330,9 +339,13 @@ class Creative(models.Model):
 
             self.screenshot = default_storage.save('screenshots/screenshot.png', temp_out)
             self.save()
+=======
+        self.screenshot_url = image.json()['url']
+        self.save()
+>>>>>>> parent of 2e8e393... Update to preview tool
 
-        finally:
-            browser.close()
+        log.info(f'Successfully took screenshot for {self.name}')
+        log.info(self.screenshot_url)
 
     def save_image(self):
 
