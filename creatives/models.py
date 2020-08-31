@@ -300,23 +300,12 @@ class Creative(models.Model):
         self.save()
 
     def take_screenshot(self):
-        try:
-            chrome_options = webdriver.ChromeOptions()
-            chrome_options.add_argument("--headless")
-            chrome_options.add_argument("--disable-gpu")
-            browser = webdriver.Chrome(options=chrome_options)
 
-<<<<<<< HEAD
-            html_doc = self.use_correct_markup()
-
-            browser.get("data:text/html;charset=utf-8,{html_doc}".format(html_doc=html_doc))
-=======
         # Uses the HCTI API to take a screenshot of the ad tag code provided
 
         hcti_api_endpoint = "https://hcti.io/v1/image"
         hcti_api_user_id = config('hcti_api_user_id')
         hcti_api_key = config('hcti_api_key')
->>>>>>> parent of 2e8e393... Update to preview tool
 
         data = {
             'html': self.use_correct_markup(),
@@ -326,23 +315,8 @@ class Creative(models.Model):
 
         image = requests.post(url=hcti_api_endpoint, data=data, auth=(hcti_api_user_id, hcti_api_key))
 
-<<<<<<< HEAD
-            temp = NamedTemporaryFile(prefix='screenshot', suffix='.png')
-            browser.save_screenshot(temp.name)
-            im = Image.open(temp)
-            cropped_dimensions = (8, 8, int(self.width) + 8, int(self.height) + 8)
-            log.warning(f'The cropped dimensions are {cropped_dimensions}')
-            cropped = im.crop(cropped_dimensions)
-
-            temp_out = NamedTemporaryFile(prefix='screenshot_out', suffix='.png')
-            cropped.save(temp_out.name)
-
-            self.screenshot = default_storage.save('screenshots/screenshot.png', temp_out)
-            self.save()
-=======
         self.screenshot_url = image.json()['url']
         self.save()
->>>>>>> parent of 2e8e393... Update to preview tool
 
         log.info(f'Successfully took screenshot for {self.name}')
         log.info(self.screenshot_url)

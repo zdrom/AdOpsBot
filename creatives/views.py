@@ -132,16 +132,8 @@ def preview(request):
             user = parse_qs(parsed.path)['user_name'][0]
             response_url = parse_qs(parsed.path)['response_url'][0]
 
-<<<<<<< HEAD
-            reply_with_preview(text, user, response_url, channel)
-
-            print(request.body)
-
-            return HttpResponse(status=200, content='Confirming receipt!')
-=======
             reply_with_preview(text, user, response_url)
             return HttpResponse(status=200)
->>>>>>> parent of 2e8e393... Update to preview tool
 
 
 @csrf_exempt
