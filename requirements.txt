@@ -30,6 +30,7 @@ Markdown==3.2.2
 MarkupSafe==1.1.1
 mccabe==0.6.1
 multidict==4.7.6
+numpy==1.21.2
 openpyxl==3.0.3
 Pillow==7.1.2
 pycodestyle==2.6.0
@@ -47,6 +48,7 @@ six==1.15.0
 slackclient==2.7.1
 slackeventsapi==2.1.0
 sqlparse==0.3.1
+texttable==1.6.4
 urllib3==1.25.9
 wcwidth==0.2.4
 Werkzeug==1.0.1
