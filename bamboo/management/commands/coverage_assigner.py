@@ -159,6 +159,6 @@ class Command(BaseCommand):
         for member in Team. objects.all():
             summary_table.add_row([member.name, member.total_days_covered()])
 
-        summary += summary_table.draw()
+        summary += f'```{summary_table.draw()}```'
 
-        slack_client.chat_postMessage(channel='D1P7PGBL3', text=summary)
+        slack_client.chat_postMessage(channel='C02JJ6813ME', text=summary)
