@@ -109,11 +109,22 @@ class Command(BaseCommand):
                                 f'{existing_pto.coverage.name} is not eligible for coverage because they are already assigned coverage')
                             eligible_for_coverage.remove(existing_pto.coverage_id)
 
+            slack_client = WebClient(config('SLACK_BOT_TOKEN'))
+
             # assign coverage
             if len(eligible_for_coverage) == 1:
 
                 pto.coverage = Team.objects.get(pk=eligible_for_coverage[0])
                 log.info(f'Coverage assigned to {Team.objects.get(pk=eligible_for_coverage[0]).name} because they are the only one eligible')
+
+            elif len(eligible_for_coverage) == 0:
+
+                message = '*No one was eligible for coverage*\n'
+                message += f' {pto.team_member} \n {pto.start} \n {pto.end}'
+                
+                slack_client.chat_postMessage(channel='C02JJ6813ME', text=message)
+
+                return
 
             else:
                 coverage = Team.objects.get(pk=eligible_for_coverage[0])
@@ -149,7 +160,6 @@ class Command(BaseCommand):
         # ssl_context.check_hostname = False
         # ssl_context.verify_mode = ssl.CERT_NONE
 
-        slack_client = WebClient(config('SLACK_BOT_TOKEN'))
         slack_client.chat_postMessage(channel='C02JJ6813ME', text=message)
 
         summary = '*Coverage Summary*\n\n'
