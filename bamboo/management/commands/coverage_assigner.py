@@ -29,6 +29,7 @@ class Command(BaseCommand):
         key = config('BAMBOO')
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={three_days_from_today}'
 
+        # r = requests.get(url=url,verify=False)
         r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
@@ -62,7 +63,7 @@ class Command(BaseCommand):
         for request_id in existing_request_ids:
             if str(request_id) not in new_request_ids:
                 request_ids_to_remove.append(request_id)
-                log.info(f'*****Removing {PTO.objects.get(request_id=request_id)} because it was deleted from Bamboo')
+                print(f'*****Removing {PTO.objects.get(request_id=request_id)} because it was deleted from Bamboo')
 
         PTO.objects.filter(request_id__in=request_ids_to_remove).delete()
 
@@ -72,12 +73,12 @@ class Command(BaseCommand):
 
         # If there is nothing that needs coverage, return
         if pto_that_needs_coverage.count() == 0:
-            log.info('No PTO assignments today')
+            print('No PTO assignments today')
             return
 
         for pto in pto_that_needs_coverage:
 
-            log.info(f'*****Assigning Coverage for {pto.team_member.name} from {pto.start} through {pto.end}*****' )
+            print(f'*****Assigning Coverage for {pto.team_member.name} from {pto.start} through {pto.end}*****' )
 
             # Filter out the team member taking PTO and convert to a list
             eligible_for_coverage = list(Team.objects.filter(~Q(id=pto.team_member_id)).values_list(flat=True))
@@ -95,7 +96,7 @@ class Command(BaseCommand):
 
                     if overlap != 0:
                         # Remove the team member who is taking the existing PTO
-                        log.info(
+                        print(
                             f'{existing_pto.team_member.name} is not eligible for coverage because they will be on PTO')
                         if existing_pto.team_member_id in eligible_for_coverage:
                             # Check to see if the person taking PTO has been removed from the list already
@@ -105,45 +106,46 @@ class Command(BaseCommand):
                         if existing_pto.coverage is not None:
                             # if coverage exists for the existing PTO
                             # Remove the team member who is assigned coverage
-                            log.info(
+                            print(
                                 f'{existing_pto.coverage.name} is not eligible for coverage because they are already assigned coverage')
                             eligible_for_coverage.remove(existing_pto.coverage_id)
 
-            slack_client = WebClient(config('SLACK_BOT_TOKEN'))
+            self.client = WebClient(config('SLACK_BOT_TOKEN'))
+            slack_client = self.client
 
             # assign coverage
             if len(eligible_for_coverage) == 1:
 
                 pto.coverage = Team.objects.get(pk=eligible_for_coverage[0])
-                log.info(f'Coverage assigned to {Team.objects.get(pk=eligible_for_coverage[0]).name} because they are the only one eligible')
+                print(f'Coverage assigned to {Team.objects.get(pk=eligible_for_coverage[0]).name} because they are the only one eligible')
 
             elif len(eligible_for_coverage) == 0:
 
                 message = '*No one was eligible for coverage*\n'
                 message += f' {pto.team_member} \n {pto.start} \n {pto.end}'
-                
+
                 slack_client.chat_postMessage(channel='C02JJ6813ME', text=message)
 
                 return
 
             else:
                 coverage = Team.objects.get(pk=eligible_for_coverage[0])
-                log.info(f'Coverage assigned to {Team.objects.get(pk=eligible_for_coverage[0]).name} to start')
+                print(f'Coverage assigned to {Team.objects.get(pk=eligible_for_coverage[0]).name} to start')
 
                 for team_member_id in eligible_for_coverage:
                     team_member = Team.objects.get(pk=team_member_id)
                     if team_member.total_days_covered() < coverage.total_days_covered():
-                        log.info(f'Coverage assigned to {team_member.name} because they have fewer days covered than {coverage.name}')
+                        print(f'Coverage assigned to {team_member.name} because they have fewer days covered than {coverage.name}')
                         coverage = team_member
 
                 pto.coverage = coverage
 
             pto.save()
 
-            log.info('*****Total Days Covered*****')
+            print('*****Total Days Covered*****')
             for member in Team.objects.all():
-                log.info(f'{member.name}:{member.total_days_covered()}')
-            log.info('**********')
+                print(f'{member.name}:{member.total_days_covered()}')
+            print('**********')
 
         table = Texttable()
         table.header(['PTO', 'Start', 'End', 'Coverage'])
