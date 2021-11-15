@@ -100,7 +100,7 @@ class Command(BaseCommand):
                             f'{existing_pto.team_member.name} is not eligible for coverage because they will be on PTO')
                         if existing_pto.team_member_id in eligible_for_coverage:
                             # Check to see if the person taking PTO has been removed from the list already
-                            # Maybe they took of two days in a row with seperate requests
+                            # Maybe they took of two days in a row with separate requests
                             eligible_for_coverage.remove(existing_pto.team_member_id)
 
                         if existing_pto.coverage is not None:
@@ -108,7 +108,11 @@ class Command(BaseCommand):
                             # Remove the team member who is assigned coverage
                             print(
                                 f'{existing_pto.coverage.name} is not eligible for coverage because they are already assigned coverage')
-                            eligible_for_coverage.remove(existing_pto.coverage_id)
+
+                            if existing_pto.coverage in eligible_for_coverage:
+                                # Check to see if the coverage has been removed from the list already
+                                # Maybe they were assigned coverage and then took PTO later
+                                eligible_for_coverage.remove(existing_pto.coverage_id)
 
             self.client = WebClient(config('SLACK_BOT_TOKEN'))
             slack_client = self.client
