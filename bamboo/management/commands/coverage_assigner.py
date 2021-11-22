@@ -21,16 +21,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         today = date.today()
-        three_days_from_today = today + timedelta(days=3)
+        five_days_from_today = today + timedelta(days=5)
 
         if today.weekday() == 5 or today.weekday() == 6:  # If it is a weekend don't check for PTO
             return
 
         key = config('BAMBOO')
-        url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={three_days_from_today}'
+        url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={five_days_from_today}'
 
-        # r = requests.get(url=url,verify=False)
-        r = requests.get(url=url)
+        r = requests.get(url=url,verify=False)
+        # r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
 
@@ -109,7 +109,7 @@ class Command(BaseCommand):
                             print(
                                 f'{existing_pto.coverage.name} is not eligible for coverage because they are already assigned coverage')
 
-                            if existing_pto.coverage in eligible_for_coverage:
+                            if existing_pto.coverage_id in eligible_for_coverage:
                                 # Check to see if the coverage has been removed from the list already
                                 # Maybe they were assigned coverage and then took PTO later
                                 eligible_for_coverage.remove(existing_pto.coverage_id)
