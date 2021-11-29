@@ -21,7 +21,7 @@ from rest_framework import routers
 from creatives import views
 
 router = routers.DefaultRouter()
-router.register(r'creatives', views.CreativeViewSet)
+router.register(r'creative', views.CreativeViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
