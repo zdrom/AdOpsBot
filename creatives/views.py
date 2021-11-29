@@ -7,6 +7,8 @@ from urllib.parse import parse_qs
 from decouple import config
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import viewsets
+from rest_framework import permissions
 
 from slack import WebClient, errors
 from slackeventsapi import SlackEventAdapter
@@ -14,6 +16,9 @@ from slackeventsapi import SlackEventAdapter
 from background_tasks import reply_with_preview, reply_with_stats, reply_with_template, reply_with_instructions, \
     router, reply_with_click_through
 import logging
+
+from creatives.models import Creative
+from creatives.serializers import CreativeSerializer
 
 log = logging.getLogger("django")
 
@@ -165,3 +170,12 @@ def request_valid(request):
     else:
         print("Verification failed. Signature invalid.")
         return False
+
+
+class CreativeViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = Creative.objects.all()
+    serializer_class = CreativeSerializer
+    permission_classes = [permissions.IsAuthenticated]

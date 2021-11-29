@@ -16,8 +16,16 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import routers
+
+from creatives import views
+
+router = routers.DefaultRouter()
+router.register(r'creatives', views.CreativeViewSet)
 
 urlpatterns = [
+    path('', include(router.urls)),
     path('admin/', admin.site.urls),
-    path('creatives/', include('creatives.urls'))
+    path('creatives/', include('creatives.urls')),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
