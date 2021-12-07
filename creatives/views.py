@@ -9,6 +9,9 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import authentication, permissions
 
 from slack import WebClient, errors
 from slackeventsapi import SlackEventAdapter
@@ -179,3 +182,17 @@ class CreativeViewSet(viewsets.ModelViewSet):
     queryset = Creative.objects.all()
     serializer_class = CreativeSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def excel(request):
+
+    c = Creative(
+        markup=request.data['markup']
+    )
+
+    c.determine_adserver()
+    c.add_macros()
+
+    return Response({"message": "Got some data!", "markup with macros": c.markup_with_macros})

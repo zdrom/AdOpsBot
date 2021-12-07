@@ -46,6 +46,9 @@ class Creative(models.Model):
     def __str__(self):
         return str(self.name)
 
+    # class Meta:
+    #     ordering = ['created_at']
+
     def clean_up(self):
         # Remove Potential formatting that slack adds
         self.markup = re.sub(pattern=r'^```|```$', repl='', string=self.markup)

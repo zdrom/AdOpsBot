@@ -23,7 +23,8 @@ class Command(BaseCommand):
 
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={today}'
 
-        r = requests.get(url=url)
+        # r = requests.get(url=url)
+        r = requests.get(url=url, verify=False)
 
         calendar = ElementTree.fromstring(r.text)
 

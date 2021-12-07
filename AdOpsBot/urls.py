@@ -18,10 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 
-from creatives import views
+from creatives import views as CreativeViews
+from bamboo import views as PTOViews
 
 router = routers.DefaultRouter()
-router.register(r'creative', views.CreativeViewSet)
+router.register(r'creative', CreativeViews.CreativeViewSet)
+router.register(r'pto', PTOViews.PTOViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

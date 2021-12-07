@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Creative
 
 
-class CreativeSerializer(serializers.HyperlinkedModelSerializer):
+class CreativeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Creative
-        fields = ('name', 'width', 'height', 'placement_id', 'markup', 'markup_with_macros')
+        fields = ['name', 'width', 'height', 'markup']
