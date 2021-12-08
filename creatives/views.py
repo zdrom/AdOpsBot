@@ -184,7 +184,7 @@ class CreativeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-@api_view(['POST'])
+@api_view(['POST',])
 @permission_classes((permissions.AllowAny,))
 def excel(request):
 
@@ -195,4 +195,6 @@ def excel(request):
     c.determine_adserver()
     c.add_macros()
 
-    return Response({"message": "Got some data!", "markup with macros": c.markup_with_macros})
+    return Response(status=200, data={"message": "Got some data!", "markup with macros": c.markup_with_macros})
+
+
