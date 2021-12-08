@@ -186,7 +186,7 @@ class CreativeViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST',])
 @permission_classes((permissions.AllowAny,))
-def excel(request):
+def add_macros(request):
 
     c = Creative(
         markup=request.data['markup']
@@ -198,3 +198,16 @@ def excel(request):
     return Response(status=200, data={"message": "Got some data!", "markup with macros": c.markup_with_macros})
 
 
+@api_view(['POST',])
+@permission_classes((permissions.AllowAny,))
+def remove_blocking(request):
+
+    c = Creative(
+        markup=request.data['markup']
+    )
+
+    c.determine_adserver()
+    c.has_blocking()
+    c.remove_blocking()
+
+    return Response(status=200, data={"markup": c.markup_without_blocking})
