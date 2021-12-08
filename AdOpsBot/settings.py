@@ -206,6 +206,4 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "https://script-lab-runner.azureedge.net",
-]
+CORS_ALLOW_ALL_ORIGINS = True
