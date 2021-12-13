@@ -40,6 +40,8 @@ class Creative(models.Model):
     screenshot_url = models.URLField(blank=True)
     creative_group_id = models.ForeignKey(CreativeGroup, on_delete=models.CASCADE, blank=True, null=True)
     click_through = models.CharField(max_length=500, blank=True)
+    concept = models.CharField(max_length=100, blank=True)  # Used for the creative name
+    free_field = models.CharField(max_length=100, blank=True)  # Used for the creative name
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

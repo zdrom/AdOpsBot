@@ -211,3 +211,20 @@ def remove_blocking(request):
     c.remove_blocking()
 
     return Response(status=200, data={"markup": c.markup_without_blocking})
+
+
+@api_view(['POST',])
+@permission_classes((permissions.AllowAny,))
+def take_screenshot(request):
+
+    c = Creative(
+        markup=request.data['markup']
+    )
+
+    c.determine_adserver()
+    c.has_blocking()
+    c.remove_blocking()
+    c.take_screenshot()
+    c.save_image()
+
+    return Response(status=200, data={"markup": c.screenshot})

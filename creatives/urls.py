@@ -8,4 +8,5 @@ urlpatterns = [
     path('get_click_through/', views.get_click_through, name='get_click_through'),
     path('add_macros/', views.add_macros, name='add_macros'),
     path('remove_blocking/', views.remove_blocking, name='remove_blocking'),
+    path('take_screenshot/', views.take_screenshot, name='take_screenshot'),
 ]
