@@ -320,6 +320,8 @@ def find_values(header_cols, placement):
         name = f"{width}x{height}||{placement[header_cols['concept']]}||{placement[header_cols['placement id']]}"
     elif 'free' in header_cols:
         name = f"{width}x{height}||{placement[header_cols['free']]}||{placement[header_cols['placement id']]}"
+    else:
+        name = f"{width}x{height}||{placement[header_cols['placement id']]}"
 
     markup = placement[header_cols['markup']]
     placement_name = placement[header_cols['placement name']]
