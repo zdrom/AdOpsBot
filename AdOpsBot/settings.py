@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_extensions',
     'creatives.apps.CreativesConfig',
     'creative_groups.apps.CreativeGroupsConfig',
     'bamboo.apps.BambooConfig',
