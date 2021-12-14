@@ -9,4 +9,5 @@ urlpatterns = [
     path('add_macros/', views.add_macros, name='add_macros'),
     path('remove_blocking/', views.remove_blocking, name='remove_blocking'),
     path('take_screenshot/', views.take_screenshot, name='take_screenshot'),
+    path('generate_template/', views.generate_template, name='generate_template'),
 ]

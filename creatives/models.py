@@ -29,6 +29,7 @@ class Creative(models.Model):
     width = models.IntegerField(blank=True, null=True)
     height = models.IntegerField(blank=True, null=True)
     placement_id = models.CharField(max_length=50, blank=True)
+    placement_name = models.CharField(max_length=500, blank=True)
     blocking = models.NullBooleanField(null=True, blank=True)
     blocking_vendor = models.CharField(max_length=30, blank=True)
     markup = models.TextField()
