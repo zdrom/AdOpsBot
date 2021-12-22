@@ -21,16 +21,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         today = date.today()
+
+        # Coverage is assigned for all pto that is scheduled to start within the next 5 days
         five_days_from_today = today + timedelta(days=5)
+
+        # Get all PTO within the next two weeks
+        # To check for coverage conflicts of overlapping PTO
+        fifteen_days_from_now = today + timedelta(days=15)
 
         if today.weekday() == 5 or today.weekday() == 6:  # If it is a weekend don't check for PTO
             return
 
         key = config('BAMBOO')
-        url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={five_days_from_today}'
+        url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={fifteen_days_from_now}'
 
-        # r = requests.get(url=url,verify=False)
-        r = requests.get(url=url)
+        r = requests.get(url=url,verify=False)
+        # r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
 
@@ -69,7 +75,7 @@ class Command(BaseCommand):
 
         # Get all pto that does not have coverage assigned
         # This step is separate from adding the PTO in case there are multiple new pto requests that overlap
-        pto_that_needs_coverage = PTO.objects.filter(coverage=None).all()
+        pto_that_needs_coverage = PTO.objects.filter(coverage=None, start__lte=five_days_from_today).all()
 
         # If there is nothing that needs coverage, return
         if pto_that_needs_coverage.count() == 0:
@@ -113,9 +119,6 @@ class Command(BaseCommand):
                                 # Check to see if the coverage has been removed from the list already
                                 # Maybe they were assigned coverage and then took PTO later
                                 eligible_for_coverage.remove(existing_pto.coverage_id)
-
-            self.client = WebClient(config('SLACK_BOT_TOKEN'))
-            slack_client = self.client
 
             # assign coverage
             if len(eligible_for_coverage) == 1:
@@ -166,6 +169,9 @@ class Command(BaseCommand):
         # ssl_context.check_hostname = False
         # ssl_context.verify_mode = ssl.CERT_NONE
 
+        self.client = WebClient(config('SLACK_BOT_TOKEN'))
+        slack_client = self.client
+
         slack_client.chat_postMessage(channel='C02JJ6813ME', text=message)
 
         summary = '*Coverage Summary*\n\n'
@@ -176,5 +182,4 @@ class Command(BaseCommand):
             summary_table.add_row([member.name, member.total_days_covered()])
 
         summary += f'```{summary_table.draw()}```'
-
         slack_client.chat_postMessage(channel='C02JJ6813ME', text=summary)
