@@ -35,8 +35,8 @@ class Command(BaseCommand):
         key = config('BAMBOO')
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={fifteen_days_from_now}'
 
-        r = requests.get(url=url,verify=False)
-        # r = requests.get(url=url)
+        # r = requests.get(url=url,verify=False)
+        r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
 
@@ -172,7 +172,7 @@ class Command(BaseCommand):
         self.client = WebClient(config('SLACK_BOT_TOKEN'))
         slack_client = self.client
 
-        slack_client.chat_postMessage(channel='C02JJ6813ME', text=message)
+        slack_client.chat_postMessage(channel='G1P9HPMKK', text=message)
 
         summary = '*Coverage Summary*\n\n'
         summary_table = Texttable()
@@ -182,4 +182,4 @@ class Command(BaseCommand):
             summary_table.add_row([member.name, member.total_days_covered()])
 
         summary += f'```{summary_table.draw()}```'
-        slack_client.chat_postMessage(channel='C02JJ6813ME', text=summary)
+        slack_client.chat_postMessage(channel='D1P7PGBL3', text=summary)
