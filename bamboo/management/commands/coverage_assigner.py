@@ -160,9 +160,7 @@ class Command(BaseCommand):
         for pto in pto_that_needs_coverage:
             table.add_row([pto.team_member, pto.start.strftime('%m-%d'), pto.end.strftime('%m-%d'), pto.coverage])
 
-        message = 'Good morning!\nThere is upcoming PTO that requires coverage in the next few days.\nIf you are taking PTO please remember to do the following:\n' \
-                  '1. Coordinate with your coverage\n2. Create a coverage document\n3. Notify your alignment of your coverage\n' \
-                  'Please see below for the coverage assignments\n'
+        message = 'Good morning!\n\nThere is upcoming PTO that requires coverage in the next few days.\n\nIf you are taking PTO or are assigned coverage, please remember to follow the processes outlined <https://adtheorent.atlassian.net/wiki/spaces/ADOPS/pages/2738618369/PTO+and+Coverage+Policy|here>\n\n'
         message += f'```{table.draw()}```'
 
         # ssl_context = ssl.create_default_context()
