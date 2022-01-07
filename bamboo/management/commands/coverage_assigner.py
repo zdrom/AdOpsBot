@@ -35,8 +35,8 @@ class Command(BaseCommand):
         key = config('BAMBOO')
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={fifteen_days_from_now}'
 
-        # r = requests.get(url=url,verify=False)
-        r = requests.get(url=url)
+        r = requests.get(url=url,verify=False)
+        #  r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
 
