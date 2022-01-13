@@ -35,8 +35,8 @@ class Command(BaseCommand):
         key = config('BAMBOO')
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={fifteen_days_from_now}'
 
-        r = requests.get(url=url,verify=False)
-        #  r = requests.get(url=url)
+        #  r = requests.get(url=url,verify=False)
+        r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
 
@@ -83,7 +83,6 @@ class Command(BaseCommand):
             return
 
         for pto in pto_that_needs_coverage:
-
             print(f'*****Assigning Coverage for {pto.team_member.name} from {pto.start} through {pto.end}*****' )
 
             # Filter out the team member taking PTO and convert to a list
@@ -180,4 +179,4 @@ class Command(BaseCommand):
             summary_table.add_row([member.name, member.total_days_covered()])
 
         summary += f'```{summary_table.draw()}```'
-        slack_client.chat_postMessage(channel='D1P7PGBL3', text=summary)
+        slack_client.chat_postMessage(channel='C02JJ6813ME', text=summary)

@@ -23,8 +23,8 @@ class Command(BaseCommand):
 
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={today}'
 
-        # r = requests.get(url=url)
-        r = requests.get(url=url, verify=False)
+        r = requests.get(url=url)
+        # r = requests.get(url=url, verify=False)
 
         calendar = ElementTree.fromstring(r.text)
 
@@ -42,7 +42,6 @@ class Command(BaseCommand):
             message = f'*There {is_are} {len(pto_today)} {person_people} on PTO today*\n'
             for person in pto_today:
                 message += f'{person}\n'
-            message += '*Please keep an eye on the coverage queue!*'
 
             slack_client = WebClient(config('SLACK_BOT_TOKEN'))
 
