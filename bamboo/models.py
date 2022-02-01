@@ -40,6 +40,9 @@ class PTO(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name_plural = "PTO"
+
     def __str__(self):
         return str(f'{self.team_member.name} {self.request_id}')
 
@@ -59,6 +62,9 @@ class Holidays(models.Model):
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Holidays"
 
     def __str__(self):
         return self.name
