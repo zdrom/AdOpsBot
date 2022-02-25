@@ -30,14 +30,18 @@ class Team(models.Model):
 
         return total_days_covered
 
+    class Meta:
+        verbose_name_plural = "team"
+
 
 class PTO(models.Model):
     request_id = models.IntegerField()
-    team_member = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team_member')
-    coverage = models.ForeignKey(Team, on_delete=models.CASCADE, blank=True, null=True, related_name='coverage')
+    team_member = models.ForeignKey(Team, on_delete=models.SET_NULL,blank=True, null=True, related_name='team_member')
+    coverage = models.ForeignKey(Team, on_delete=models.SET_NULL, blank=True, null=True, related_name='coverage')
     start = models.DateField()
     end = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
