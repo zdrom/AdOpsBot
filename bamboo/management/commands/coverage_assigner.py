@@ -47,7 +47,7 @@ class Command(BaseCommand):
 
         # Add any new PTO
         for item in calendar:
-            if item.attrib['type'] == 'timeOff' and item[1].text != 'Zach Romano':
+            if item.attrib['type'] == 'timeOff' and (item[1].text != 'Zach Romano' or item[1].text != 'Olivia Dado'):
                 # Unique ID issued by Bamboo for each request
                 request_id = item[0].attrib['id']
                 team_member_taking_pto = item[1].text
