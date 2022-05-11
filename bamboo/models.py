@@ -6,6 +6,8 @@ import numpy as np
 
 class Team(models.Model):
     name = models.CharField(max_length=100)
+    eligible_to_cover = models.BooleanField(default=False)
+    needs_coverage = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

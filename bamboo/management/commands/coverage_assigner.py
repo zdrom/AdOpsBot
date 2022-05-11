@@ -35,7 +35,7 @@ class Command(BaseCommand):
         key = config('BAMBOO')
         url = f'https://{key}:x@api.bamboohr.com/api/gateway.php/adtheorent/v1/time_off/whos_out?start={today}&end={fifteen_days_from_now}'
 
-        #  r = requests.get(url=url,verify=False)
+        #  r = requests.get(url=url, verify=False)
         r = requests.get(url=url)
 
         calendar = ElementTree.fromstring(r.text)
@@ -47,7 +47,10 @@ class Command(BaseCommand):
 
         # Add any new PTO
         for item in calendar:
-            if item.attrib['type'] == 'timeOff' and item[1].text != 'Zach Romano' and item[1].text != 'Olivia Dado':
+
+            # If the item type is TimeOff and Not Holiday, It's not for me, and the team member needs coverage
+            if item.attrib['type'] == 'timeOff' and item[1].text != 'Zach Romano' and Team.objects.get(
+                    name=item[1].text).needs_coverage == True:
                 # Unique ID issued by Bamboo for each request
                 request_id = item[0].attrib['id']
                 team_member_taking_pto = item[1].text
@@ -75,7 +78,7 @@ class Command(BaseCommand):
 
         # Get all pto that does not have coverage assigned
         # This step is separate from adding the PTO in case there are multiple new pto requests that overlap
-        pto_that_needs_coverage = PTO.objects.filter(coverage=None, start__lte=five_days_from_today).all()
+        pto_that_needs_coverage = PTO.objects.filter(coverage=None, start__range=(today, five_days_from_today)).all()
 
         # If there is nothing that needs coverage, return
         if pto_that_needs_coverage.count() == 0:
@@ -83,10 +86,12 @@ class Command(BaseCommand):
             return
 
         for pto in pto_that_needs_coverage:
-            print(f'*****Assigning Coverage for {pto.team_member.name} from {pto.start} through {pto.end}*****' )
+            print(f'*****Assigning Coverage for {pto.team_member.name} from {pto.start} through {pto.end}*****')
 
             # Filter out the team member taking PTO and convert to a list
-            eligible_for_coverage = list(Team.objects.filter(~Q(id=pto.team_member_id)).values_list(flat=True))
+            # Newer employees are not eligible to cover
+            eligible_for_coverage = list(
+                Team.objects.filter(~Q(id=pto.team_member_id), eligible_to_cover=True).values_list(flat=True))
 
             # Get all existing PTO and check for overlaps
             all_pto = PTO.objects.filter(end__gte=date.today()).filter(~Q(request_id=pto.request_id))
@@ -175,7 +180,7 @@ class Command(BaseCommand):
         summary_table = Texttable()
         summary_table.header(['Team Member', 'Days Covered'])
 
-        for member in Team. objects.all():
+        for member in Team.objects.all():
             summary_table.add_row([member.name, member.total_days_covered()])
 
         summary += f'```{summary_table.draw()}```'
