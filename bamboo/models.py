@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 import numpy as np
+import datetime
 
 
 
@@ -31,6 +32,31 @@ class Team(models.Model):
                     total_days_covered -= 1
 
         return total_days_covered
+
+    def total_days_covered_this_year(self):
+
+        def current_year():
+            now = datetime.datetime.now()
+            return now.year
+
+        current_year = current_year()
+
+        total_days_covered_this_year = 0
+
+        holidays = Holidays.objects.all()
+
+        for pto in self.coverage.filter(start__year=current_year):
+            # Use numpy to only count weekdays
+            days = np.busday_count(pto.start, pto.end) + 1
+            total_days_covered_this_year += days
+
+            # Don't include holidays in total days covered
+            for holiday in holidays:
+                if pto.start < holiday.date < pto.end:
+                    total_days_covered_this_year -= 1
+
+        return total_days_covered_this_year
+
 
     class Meta:
         verbose_name_plural = "team"
