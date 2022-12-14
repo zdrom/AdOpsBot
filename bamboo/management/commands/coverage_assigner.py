@@ -70,7 +70,7 @@ class Command(BaseCommand):
 
         request_ids_to_remove = []
         for request_id in existing_request_ids:
-            if str(request_id) not in new_request_ids:
+            if str(request_id) not in new_request_ids and request_id != "0000":
                 request_ids_to_remove.append(request_id)
                 print(f'*****Removing {PTO.objects.get(request_id=request_id)} because it was deleted from Bamboo')
 
