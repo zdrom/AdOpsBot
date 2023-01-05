@@ -145,7 +145,7 @@ class Command(BaseCommand):
 
                 for team_member_id in eligible_for_coverage:
                     team_member = Team.objects.get(pk=team_member_id)
-                    if team_member.total_days_covered() < coverage.total_days_covered():
+                    if team_member.total_days_covered_this_year() < coverage.total_days_covered_this_year():
                         print(f'Coverage assigned to {team_member.name} because they have fewer days covered than {coverage.name}')
                         coverage = team_member
 
@@ -155,7 +155,7 @@ class Command(BaseCommand):
 
             print('*****Total Days Covered*****')
             for member in Team.objects.all():
-                print(f'{member.name}:{member.total_days_covered()}')
+                print(f'{member.name}:{member.total_days_covered_this_year()}')
             print('**********')
 
         table = Texttable()
