@@ -30,5 +30,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('admin/', admin.site.urls),
     path('creatives/', include('creatives.urls')),
+    path('bamboo/', include('bamboo.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
