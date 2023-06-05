@@ -4,6 +4,10 @@ import numpy as np
 import datetime
 
 
+from django.db import models
+from datetime import datetime
+import numpy as np
+
 
 class Team(models.Model):
     name = models.CharField(max_length=100)
@@ -11,14 +15,13 @@ class Team(models.Model):
     needs_coverage = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    coverage_multiplier_factor = models.FloatField(default=1)
 
     def __str__(self):
         return self.name
 
     def total_days_covered(self):
-
         total_days_covered = 0
-
         holidays = Holidays.objects.all()
 
         for pto in self.coverage.all():
@@ -34,15 +37,12 @@ class Team(models.Model):
         return total_days_covered
 
     def total_days_covered_this_year(self):
-
         def current_year():
             now = datetime.datetime.now()
             return now.year
 
         current_year = current_year()
-
         total_days_covered_this_year = 0
-
         holidays = Holidays.objects.all()
 
         for pto in self.coverage.filter(start__year=current_year):
@@ -55,8 +55,7 @@ class Team(models.Model):
                 if pto.start < holiday.date < pto.end:
                     total_days_covered_this_year -= 1
 
-        return total_days_covered_this_year
-
+        return total_days_covered_this_year * self.coverage_multiplier_factor
 
     class Meta:
         verbose_name_plural = "team"
@@ -64,7 +63,7 @@ class Team(models.Model):
 
 class PTO(models.Model):
     request_id = models.IntegerField()
-    team_member = models.ForeignKey(Team, on_delete=models.SET_NULL,blank=True, null=True, related_name='team_member')
+    team_member = models.ForeignKey(Team, on_delete=models.SET_NULL, blank=True, null=True, related_name='team_member')
     coverage = models.ForeignKey(Team, on_delete=models.SET_NULL, blank=True, null=True, related_name='coverage')
     start = models.DateField()
     end = models.DateField()
