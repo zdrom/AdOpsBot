@@ -38,7 +38,7 @@ class Team(models.Model):
 
     def total_days_covered_this_year(self):
         def current_year():
-            now = datetime.datetime.now()
+            now = datetime.now()
             return now.year
 
         current_year = current_year()
