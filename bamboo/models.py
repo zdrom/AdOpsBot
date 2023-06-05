@@ -15,7 +15,7 @@ class Team(models.Model):
     needs_coverage = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    coverage_multiplier_factor = models.FloatField(default=1)
+    coverage_booster_factor = models.FloatField(default=0)
 
     def __str__(self):
         return self.name
@@ -55,7 +55,7 @@ class Team(models.Model):
                 if pto.start < holiday.date < pto.end:
                     total_days_covered_this_year -= 1
 
-        return total_days_covered_this_year * self.coverage_multiplier_factor
+        return total_days_covered_this_year + self.coverage_booster_factor
 
     class Meta:
         verbose_name_plural = "team"
@@ -68,7 +68,6 @@ class PTO(models.Model):
     start = models.DateField()
     end = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
