@@ -15,7 +15,8 @@ class Team(models.Model):
     needs_coverage = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    coverage_booster_factor = models.FloatField(default=0)
+    coverage_booster_factor = models.FloatField(default=0) # Used if a team member becomes eligible to cover after the beginning of the yeat
+    coverage_multiplier = models.FloatField(default=1) # Used to control coverage frequency
 
     def __str__(self):
         return self.name
@@ -55,10 +56,10 @@ class Team(models.Model):
                 if pto.start < holiday.date < pto.end:
                     total_days_covered_this_year -= 1
 
-        return total_days_covered_this_year + self.coverage_booster_factor
+        return (total_days_covered_this_year + self.coverage_booster_factor) * self.coverage_multiplier
 
     class Meta:
-        verbose_name_plural = "team"
+        verbose_name_plural = "team members"
 
 
 class PTO(models.Model):
