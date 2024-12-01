@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'creative_groups.apps.CreativeGroupsConfig',
     'bamboo.apps.BambooConfig',
     'storages',
-    'background_task',
+    'background_tasks',
     'rest_framework',
     'corsheaders',
 ]
